@@ -1350,6 +1350,71 @@ body {
         display: none;
     }
 }
+/* CSS para mejorar navegación en filtros en móviles */
+@media (max-width: 768px) {
+    .filtros-container {
+        display: flex;
+        flex-direction: column;
+        max-height: 75vh !important;
+        padding-bottom: 70px !important;
+    }
+    
+    .filtros-content {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 10px;
+    }
+    
+    .filtros-botones {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: white;
+        padding: 10px;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        z-index: 20;
+    }
+    
+    .scroll-indicator {
+        position: absolute;
+        bottom: 70px;
+        right: 10px;
+        width: 30px;
+        height: 30px;
+        background-color: rgba(30, 64, 175, 0.7);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        z-index: 25;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+}
+
+.filtros-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.filtros-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.filtros-content::-webkit-scrollbar-thumb {
+    background: #1e40af;
+    border-radius: 4px;
+}
+
+.filtros-content::-webkit-scrollbar-thumb:hover {
+    background: #1e3a8a;
+}
     </style>
 </head>
 <body>
@@ -3671,6 +3736,170 @@ function inicializar() {
         }
     }, 60000); // Actualizar cada minuto
 }
+// Función para mejorar la navegación en filtros para móviles
+function mejorarNavegacionFiltrosMobile() {
+    const filtrosContainer = document.getElementById('filtrosContainer');
+    
+    if (window.innerWidth < 768) {
+        // Evitar aplicar cambios múltiples veces
+        if (filtrosContainer.querySelector('.filtros-content')) {
+            return;
+        }
+        
+        // Crear contenedor scrollable
+        const filtrosContent = document.createElement('div');
+        filtrosContent.className = 'filtros-content';
+        
+        // Mover contenido actual al área scrollable
+        while (filtrosContainer.firstChild) {
+            if (filtrosContainer.firstChild.classList && 
+                filtrosContainer.firstChild.classList.contains('filtros-botones')) {
+                break;
+            }
+            filtrosContent.appendChild(filtrosContainer.firstChild);
+        }
+        
+        // Crear contenedor para botones fijos
+        const botonesContainer = document.createElement('div');
+        botonesContainer.className = 'filtros-botones';
+        
+        // Usar botones existentes o crear nuevos
+        const botonesOriginales = filtrosContainer.querySelector('.flex.justify-end.mt-4.space-x-2');
+        if (botonesOriginales) {
+            botonesContainer.appendChild(botonesOriginales);
+        } else {
+            botonesContainer.innerHTML = `
+                <button onclick="aplicarFiltros()" 
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+                    Aplicar Filtros
+                </button>
+                <button onclick="limpiarFiltros()" 
+                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors">
+                    Limpiar Filtros
+                </button>
+            `;
+        }
+        
+        // Añadir indicador de scroll
+        const scrollIndicator = document.createElement('div');
+        scrollIndicator.className = 'scroll-indicator';
+        scrollIndicator.innerHTML = '↕';
+        scrollIndicator.style.display = 'none';
+        
+        // Unir todo
+        filtrosContainer.appendChild(filtrosContent);
+        filtrosContainer.appendChild(botonesContainer);
+        filtrosContainer.appendChild(scrollIndicator);
+        
+        // Mostrar indicador cuando sea necesario
+        filtrosContent.addEventListener('scroll', function() {
+            if (filtrosContent.scrollHeight > filtrosContent.clientHeight) {
+                scrollIndicator.style.display = 'flex';
+                setTimeout(() => {
+                    scrollIndicator.style.display = 'none';
+                }, 2000);
+            }
+        });
+        
+        // Verificar si se necesita el indicador
+        setTimeout(() => {
+            if (filtrosContent.scrollHeight > filtrosContent.clientHeight) {
+                scrollIndicator.style.display = 'flex';
+                setTimeout(() => {
+                    scrollIndicator.style.display = 'none';
+                }, 2000);
+            }
+        }, 500);
+    }
+}
+
+// Activar cuando se muestra el panel de filtros
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleFiltros = document.getElementById('toggleFiltros');
+    const filtrosContainer = document.getElementById('filtrosContainer');
+    
+    if (toggleFiltros && filtrosContainer) {
+        toggleFiltros.addEventListener('click', function() {
+            filtrosContainer.classList.toggle('expanded');
+            
+            if (filtrosContainer.classList.contains('expanded')) {
+                setTimeout(mejorarNavegacionFiltrosMobile, 100);
+            }
+        });
+    }
+    
+    window.addEventListener('resize', function() {
+        if (filtrosContainer.classList.contains('expanded')) {
+            mejorarNavegacionFiltrosMobile();
+        }
+    });
+});
+// Función mejorada para manejar filtros en móviles
+function toggleFiltrosMejorado() {
+    const filtrosContainer = document.getElementById('filtrosContainer');
+    const toggleBtn = document.getElementById('toggleFiltros');
+    const toggleText = toggleBtn.querySelector('.toggle-text');
+    const filtrosIcon = toggleBtn.querySelector('#filtrosIcon');
+    
+    // Alternar la clase expanded
+    filtrosContainer.classList.toggle('expanded');
+    toggleBtn.classList.toggle('expanded');
+    
+    // Actualizar texto e icono del botón
+    if (filtrosContainer.classList.contains('expanded')) {
+        toggleText.textContent = 'Ocultar filtros';
+        filtrosIcon.textContent = '▲';
+        
+        // Solo aplicar mejoras móviles si el panel está expandido
+        if (window.innerWidth < 768) {
+            setTimeout(() => {
+                // Verificar si ya se aplicó la navegación móvil
+                if (!filtrosContainer.querySelector('.filtros-content')) {
+                    const contenido = filtrosContainer.innerHTML;
+                    
+                    // Limpiar el contenedor
+                    filtrosContainer.innerHTML = '';
+                    
+                    // Crear estructura para móviles
+                    const filtrosContent = document.createElement('div');
+                    filtrosContent.className = 'filtros-content';
+                    filtrosContent.innerHTML = contenido;
+                    
+                    // Extraer los botones
+                    const botonesOriginales = filtrosContent.querySelector('.flex.justify-end.mt-4.space-x-2');
+                    
+                    // Crear contenedor para botones fijos
+                    const botonesContainer = document.createElement('div');
+                    botonesContainer.className = 'filtros-botones';
+                    
+                    if (botonesOriginales) {
+                        botonesContainer.appendChild(botonesOriginales);
+                    }
+                    
+                    // Agregar todo al contenedor principal
+                    filtrosContainer.appendChild(filtrosContent);
+                    filtrosContainer.appendChild(botonesContainer);
+                }
+            }, 100);
+        }
+    } else {
+        toggleText.textContent = 'Mostrar filtros';
+        filtrosIcon.textContent = '▼';
+    }
+}
+
+// Asegurarse de reemplazar el event listener existente
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggleFiltros');
+    if (toggleBtn) {
+        // Remover listeners existentes (si es posible)
+        toggleBtn.replaceWith(toggleBtn.cloneNode(true));
+        
+        // Obtener la referencia actualizada y agregar el nuevo listener
+        const newToggleBtn = document.getElementById('toggleFiltros');
+        newToggleBtn.addEventListener('click', toggleFiltrosMejorado);
+    }
+});
 </script>
 </body>
 </html>
