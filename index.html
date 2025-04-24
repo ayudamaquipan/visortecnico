@@ -1629,7 +1629,7 @@ body {
 // Configuración y variables globales
 const SPREADSHEET_ID = '18PsFGGAf1pQ5gq1Ic-52iETlalSl3ywq166UZ2GSPKA';
 const API_KEY = 'AIzaSyCAPtV0MImSxBK8CiY9nMwpj_YM0_6PAT8';
-const RANGE = 'Hoja 1!A:O';
+const RANGE = 'Hoja 1!A1:O10000'; // Esto debería cubrir hasta 10,000 filas
 const coloresSupervisores = {
     'Cristian Pimentel': '#4CAF50', // Verde
     'Ignacio Cubillos': '#2196F3',  // Azul
@@ -1858,18 +1858,59 @@ function buscarServicio() {
     }
 }
 
-// Función para buscar por Nota de Venta
+// Función corregida para buscar por Nota de Venta
 function buscarPorNotaVenta(numeroNV) {
     const resultados = [];
+    // Asegurarse de que numeroNV sea un string
+    const numeroNVString = String(numeroNV).trim();
     
-    // Buscar el número de NV en todos los servicios y traslados
-    [...servicios, ...traslados].forEach(servicio => {
-        if (servicio.notaVenta && servicio.notaVenta.includes(numeroNV)) {
-            resultados.push(servicio);
+    console.log("Iniciando búsqueda de NV:", numeroNVString);
+    console.log("Total de servicios a revisar:", servicios.length);
+    
+    // Primero buscar coincidencias exactas
+    let coincidenciasExactas = [];
+    servicios.forEach((servicio, index) => {
+        if (servicio.notaVenta && String(servicio.notaVenta).trim() === numeroNVString) {
+            console.log(`Coincidencia exacta en servicio #${index}:`, servicio);
+            coincidenciasExactas.push(servicio);
         }
     });
     
+    // Si hay coincidencias exactas, usarlas
+    if (coincidenciasExactas.length > 0) {
+        console.log(`Se encontraron ${coincidenciasExactas.length} coincidencias exactas para NV: ${numeroNV}`);
+        mostrarResultadosBusqueda(coincidenciasExactas, 'Nota de Venta', numeroNV);
+        return coincidenciasExactas;
+    }
+    
+    // Si no hay coincidencias exactas, buscar coincidencias parciales
+    const numeroNVLowerCase = numeroNVString.toLowerCase();
+    
+    servicios.forEach((servicio, index) => {
+        if (servicio.notaVenta) {
+            const notaVentaServicio = String(servicio.notaVenta).toLowerCase().trim();
+            
+            // Verificar si la NV contiene el número buscado
+            if (notaVentaServicio.includes(numeroNVLowerCase)) {
+                console.log(`Coincidencia parcial en servicio #${index}:`, servicio);
+                resultados.push(servicio);
+            }
+        }
+    });
+    
+    // Ordenar primero los que tienen NV no cero
+    resultados.sort((a, b) => {
+        // Si la NV de a es "0" y la de b no, b va primero
+        if (a.notaVenta === "0" && b.notaVenta !== "0") return 1;
+        // Si la NV de b es "0" y la de a no, a va primero
+        if (b.notaVenta === "0" && a.notaVenta !== "0") return -1;
+        // De lo contrario, mantener el orden original
+        return 0;
+    });
+    
+    console.log(`Se encontraron ${resultados.length} coincidencias parciales para NV: ${numeroNV}`);
     mostrarResultadosBusqueda(resultados, 'Nota de Venta', numeroNV);
+    return resultados;
 }
 
 // Función para buscar por Requerimiento
@@ -1901,15 +1942,17 @@ function buscarPorCliente(cliente) {
     mostrarResultadosBusqueda(resultados, 'Cliente', cliente);
 }
 
-// Función unificada para mostrar resultados de búsqueda
+// Función corregida para mostrar resultados de búsqueda
 function mostrarResultadosBusqueda(resultados, tipoBusqueda, valorBusqueda) {
+    console.log(`Mostrando ${resultados.length} resultados para ${tipoBusqueda}: ${valorBusqueda}`);
+    
     if (resultados.length > 0) {
         // Crear panel de resultados si no existe
         let panelResultados = document.getElementById('panel-resultados');
         if (!panelResultados) {
             panelResultados = document.createElement('div');
             panelResultados.id = 'panel-resultados';
-            panelResultados.className = 'bg-white rounded-lg shadow-sm p-4 mb-4 max-h-60 overflow-auto';
+            panelResultados.className = 'panel-resultados';
             
             // Insertar después del buscador unificado
             const buscadorUnificado = document.querySelector('.buscador-unificado');
@@ -1928,16 +1971,44 @@ function mostrarResultadosBusqueda(resultados, tipoBusqueda, valorBusqueda) {
             </div>
         `;
         
-        if (resultados.length === 1) {
-            // Si hay solo un resultado, navegar automáticamente a esa fecha
-            const servicio = resultados[0];
+        // Verificar si estamos buscando una Nota de Venta y si es exactamente "0"
+        const esBusquedaNV = tipoBusqueda === 'Nota de Venta';
+        const buscandoNVCero = esBusquedaNV && valorBusqueda === '0';
+        
+        // Si hay un único resultado o si hay coincidencias exactas para la NV
+        if (resultados.length === 1 || 
+            (esBusquedaNV && resultados.some(s => String(s.notaVenta).trim() === String(valorBusqueda).trim()) && !buscandoNVCero)) {
+            
+            // Elegir el servicio correcto para navegar:
+            // Si hay coincidencia exacta de NV (excepto para NV=0), usarla
+            let servicio = resultados[0]; // Por defecto, usar el primer resultado
+            
+            if (esBusquedaNV && !buscandoNVCero) {
+                // Buscar una coincidencia exacta de NV
+                const coincidenciaExacta = resultados.find(s => 
+                    String(s.notaVenta).trim() === String(valorBusqueda).trim() && 
+                    s.notaVenta !== "0"
+                );
+                
+                if (coincidenciaExacta) {
+                    servicio = coincidenciaExacta;
+                    console.log("Usando coincidencia exacta de NV:", servicio);
+                }
+            }
+            
+            // Solo para depuración
+            console.log("Navegando a servicio:", servicio);
+            
             const fechaPartes = servicio.fecha.split('/');
             const fechaServicio = new Date(fechaPartes[2], fechaPartes[1] - 1, fechaPartes[0]);
+            
+            console.log(`Navegando automáticamente a fecha: ${fechaServicio}`);
             
             // Cambiar a la fecha del servicio y a vista diaria
             fechaSeleccionada = fechaServicio;
             cambiarVista('diaria');
             actualizarVistaFecha();
+            
             // Pasar tipoBusqueda y valorBusqueda a navegarAServicio
             const tipoB = tipoBusqueda === 'Nota de Venta' ? 'nv' : (tipoBusqueda === 'Requerimiento' ? 'req' : 'cliente');
             navegarAServicio(servicio.fecha, servicio.tecnico, servicio.notaVenta, tipoB, valorBusqueda);
@@ -1949,9 +2020,25 @@ function mostrarResultadosBusqueda(resultados, tipoBusqueda, valorBusqueda) {
         
         htmlResultados += `<div class="grid gap-2 mt-2">`;
         
+        // Ordenar resultados primero por NV no cero, luego por fecha
+        const resultadosOrdenados = [...resultados].sort((a, b) => {
+            // Si la NV de a es "0" y la de b no, b va primero
+            if (a.notaVenta === "0" && b.notaVenta !== "0") return 1;
+            // Si la NV de b es "0" y la de a no, a va primero
+            if (b.notaVenta === "0" && a.notaVenta !== "0") return -1;
+            
+            // Si ambas NV son iguales o no relevantes, ordenar por fecha
+            const fechaA = a.fecha.split('/').map(Number);
+            const fechaB = b.fecha.split('/').map(Number);
+            // Comparar año, mes, día
+            const dateA = new Date(fechaA[2], fechaA[1]-1, fechaA[0]);
+            const dateB = new Date(fechaB[2], fechaB[1]-1, fechaB[0]);
+            return dateA - dateB;
+        });
+        
         // Agrupar resultados por fecha
         const resultadosPorFecha = {};
-        resultados.forEach(servicio => {
+        resultadosOrdenados.forEach(servicio => {
             if (!resultadosPorFecha[servicio.fecha]) {
                 resultadosPorFecha[servicio.fecha] = [];
             }
@@ -1985,18 +2072,23 @@ function mostrarResultadosBusqueda(resultados, tipoBusqueda, valorBusqueda) {
             serviciosFecha.forEach(servicio => {
                 const tipoB = tipoBusqueda === 'Nota de Venta' ? 'nv' : (tipoBusqueda === 'Requerimiento' ? 'req' : 'cliente');
                 
+                // Destacar visualmente si es una coincidencia exacta para NV
+                const esCoincidenciaExacta = esBusquedaNV && String(servicio.notaVenta).trim() === String(valorBusqueda).trim();
+                const claseBorde = esCoincidenciaExacta ? 'border-blue-500 border-2' : 'border-gray-200';
+                const claseFondo = esCoincidenciaExacta ? 'bg-blue-50' : 'bg-gray-50';
+                
                 htmlResultados += `
-                    <div class="bg-gray-50 p-3 rounded border border-gray-200">
+                    <div class="${claseFondo} p-3 rounded border ${claseBorde}">
                         <div class="flex justify-between items-start">
                             <div>
-                                <div class="font-semibold">${servicio.cliente}</div>
+                                <div class="font-semibold">${servicio.cliente || 'Cliente no especificado'}</div>
                                 <div class="text-sm text-gray-600">
                                     <span class="font-medium">Hora:</span> ${servicio.horaInicio}:00 - ${servicio.horaTermino}:00
                                 </div>
                                 <div class="text-sm text-gray-600">
                                     <span class="font-medium">Técnico:</span> ${servicio.tecnico}
                                 </div>
-                                ${servicio.notaVenta ? `<div class="text-sm text-gray-600">
+                                ${servicio.notaVenta ? `<div class="text-sm ${esCoincidenciaExacta ? 'text-blue-700 font-semibold' : 'text-gray-600'}">
                                     <span class="font-medium">NV:</span> ${servicio.notaVenta}
                                 </div>` : ''}
                                 ${servicio.requerimiento ? `<div class="text-sm text-gray-600">
@@ -2066,11 +2158,16 @@ async function cargarDatos() {
     document.getElementById('error-mensaje').classList.add('hidden');
 
     try {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+        // Usar un rango amplio pero simple
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/Hoja%201!A1:O10000?key=${API_KEY}`;
+        console.log("Cargando datos desde URL:", url);
+        
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
 
         const data = await response.json();
+        console.log("Datos recibidos de la API. Total de filas:", data.values ? data.values.length : 0);
+        
         let serviciosTemp = [];
         let trasladosTemp = [];
 
@@ -2148,6 +2245,10 @@ async function cargarDatos() {
         // Actualizar datos relacionados
         fechasConServicios = new Set([...servicios, ...traslados].map(s => s.fecha));
         tecnicos = [...new Set([...servicios, ...traslados].map(s => s.tecnico))].sort();
+
+        console.log("Servicios procesados:", servicios.length);
+        console.log("Traslados procesados:", traslados.length);
+        console.log("Técnicos identificados:", tecnicos.length);
 
         // Inicializar los filtros mejorados
         inicializarChipsTecnicos();
@@ -2370,6 +2471,7 @@ function aplicarFiltros() {
 }
 
 // Limpiar filtros mejorados
+// Función corregida para limpiar filtros
 function limpiarFiltros() {
     // Limpiar técnicos
     deseleccionarTodosTecnicos();
@@ -2389,9 +2491,19 @@ function limpiarFiltros() {
         chip.classList.remove('selected');
     });
     
-    // Resetear el filtro por estado
+    // Resetear el filtro por estado - versión corregida sin usar actualizarBotonesEstado
     filtros.estado = '';
-    actualizarBotonesEstado('filtro-todos');
+    
+    // Actualizar estado visual de los botones de filtro
+    document.querySelectorAll('.estado-btn').forEach(btn => {
+        btn.classList.remove('activo');
+    });
+    
+    // Activar solamente el botón 'Todos'
+    const botonTodos = document.getElementById('filtro-todos');
+    if (botonTodos) {
+        botonTodos.classList.add('activo');
+    }
     
     filtros = {
         tecnico: '',
@@ -2406,133 +2518,229 @@ function limpiarFiltros() {
     actualizarCalendario();
 }
 
-// 3. Función para navegar a un servicio específico
+// Función con depuración avanzada para navegar a un servicio específico
 function navegarAServicio(fechaStr, tecnico, notaVenta, tipoBusqueda = 'nv', valorBusqueda = '') {
-    console.log("Navegando a servicio con:", { fechaStr, tecnico, notaVenta, tipoBusqueda, valorBusqueda });
-    
-    // Convertir formato de fecha DD/MM/YYYY a objeto Date
-    const fechaPartes = fechaStr.split('/');
-    const fecha = new Date(fechaPartes[2], fechaPartes[1] - 1, fechaPartes[0]);
-    
-    // Actualizar fecha seleccionada
-    fechaSeleccionada = fecha;
-    
-    // Cambiar a vista diaria
-    cambiarVista('diaria');
-    
-    // Actualizar la vista de fecha
-    actualizarVistaFecha();
-    
-    // Limpiar filtros previos primero
-    limpiarFiltros();
-    
-    // Determinar qué técnicos deben mostrarse según el tipo de búsqueda
-    let tecnicosAMostrar = [];
-    let criterioTexto = '';
-    
-    if (tipoBusqueda === 'nv') {
-        // Buscar todos los técnicos con esta nota de venta
-        tecnicosAMostrar = [...servicios, ...traslados]
-            .filter(s => s.notaVenta === notaVenta)
-            .map(s => s.tecnico);
-        criterioTexto = `NV: ${notaVenta}`;
-    } 
-    else if (tipoBusqueda === 'req') {
-        // Buscar todos los técnicos con este requerimiento
-        tecnicosAMostrar = [...servicios, ...traslados]
-            .filter(s => s.requerimiento === valorBusqueda)
-            .map(s => s.tecnico);
-        criterioTexto = `Requerimiento: ${valorBusqueda}`;
-    } 
-    else if (tipoBusqueda === 'cliente') {
-        // Buscar todos los técnicos asignados a este cliente
-        tecnicosAMostrar = [...servicios, ...traslados]
-            .filter(s => s.cliente.toLowerCase().includes(valorBusqueda.toLowerCase()))
-            .map(s => s.tecnico);
-        criterioTexto = `Cliente: ${valorBusqueda}`;
-    }
-    
-    // Eliminar duplicados
-    tecnicosAMostrar = [...new Set(tecnicosAMostrar)];
-    
-    // Si no hay técnicos que mostrar, al menos mostrar el técnico actual
-    if (tecnicosAMostrar.length === 0) {
-        tecnicosAMostrar = [tecnico];
-    }
-    
-    console.log("Técnicos a mostrar:", tecnicosAMostrar);
-    
-    // Deseleccionar todos los técnicos primero
-    deseleccionarTodosTecnicos();
-    
-    // Seleccionar solo los técnicos correspondientes
-    const tecnicoChips = document.querySelectorAll('#tecnicosContainer .chip');
-    let contadorSeleccionados = 0;
-    
-    tecnicoChips.forEach(chip => {
-        const nombreTecnico = chip.textContent.trim();
-        if (tecnicosAMostrar.includes(nombreTecnico)) {
-            toggleSeleccionTecnico(chip, nombreTecnico);
-            contadorSeleccionados++;
-        }
-    });
-    
-    console.log(`Seleccionados ${contadorSeleccionados} técnicos de ${tecnicosAMostrar.length}`);
-    
-    // Actualizar filtros con los datos de búsqueda - importante modificar para usar el array de técnicos
-    filtros = {
-        tecnico: tecnicosAMostrar, // Asegúrate de que sea un array
-        cliente: tipoBusqueda === 'cliente' ? valorBusqueda : '',
-        requerimiento: tipoBusqueda === 'req' ? valorBusqueda : '',
-        notaVenta: tipoBusqueda === 'nv' ? notaVenta : '',
-        estado: '',
-        supervisor: ''
+    // Crear una copia de los parámetros antes de cualquier modificación para diagnóstico
+    const parametrosOriginales = {
+        fechaStr: fechaStr,
+        tecnico: tecnico,
+        notaVenta: notaVenta,
+        tipoBusqueda: tipoBusqueda, 
+        valorBusqueda: valorBusqueda
     };
     
-    console.log("Filtros aplicados:", filtros);
+    console.log("DEPURACIÓN: Parámetros originales:", parametrosOriginales);
     
-    // Aplicar los filtros - IMPORTANTE: Llamar a esta función explícitamente
-    aplicarFiltros();
-    
-    // ELIMINAMOS actualizarCalendario() directo, ya que aplicarFiltros() ya lo llama
-    
-    // Importante: tenemos que esperar a que el calendario se actualice
-    setTimeout(() => {
-        // Buscar y resaltar servicios según tipo de búsqueda
-        let serviciosAResaltar = [];
+    try {
+        // Asegurar que todos los valores son strings válidos
+        fechaStr = typeof fechaStr === 'string' ? fechaStr : String(fechaStr || '');
+        tecnico = typeof tecnico === 'string' ? tecnico : String(tecnico || '');
+        notaVenta = typeof notaVenta === 'string' ? notaVenta : String(notaVenta || '');
+        tipoBusqueda = typeof tipoBusqueda === 'string' ? tipoBusqueda : 'nv';
+        valorBusqueda = typeof valorBusqueda === 'string' ? valorBusqueda : String(valorBusqueda || '');
         
-        if (tipoBusqueda === 'nv') {
-            serviciosAResaltar = buscarPorNotaVenta(notaVenta);
-        } else if (tipoBusqueda === 'req') {
-            serviciosAResaltar = [...servicios, ...traslados].filter(s => 
-                s.requerimiento === valorBusqueda
-            );
-        } else if (tipoBusqueda === 'cliente') {
-            serviciosAResaltar = [...servicios, ...traslados].filter(s => 
-                s.cliente.toLowerCase().includes(valorBusqueda.toLowerCase())
-            );
+        console.log("DEPURACIÓN: Parámetros normalizados:", {
+            fechaStr: fechaStr,
+            tecnico: tecnico,
+            notaVenta: notaVenta,
+            tipoBusqueda: tipoBusqueda, 
+            valorBusqueda: valorBusqueda
+        });
+        
+        // Verificar que la fecha no esté vacía
+        if (!fechaStr || fechaStr.trim() === '') {
+            console.error("La fecha está vacía o no es válida");
+            mostrarMensajeFlotante("Error: La fecha está vacía o no es válida", "error");
+            return;
         }
         
-        resaltarServiciosEnCalendario(serviciosAResaltar);
+        // Convertir formato de fecha DD/MM/YYYY a objeto Date
+        let fechaPartes = fechaStr.split('/');
         
-        // Hacer scroll al servicio resaltado
-        const elementoResaltado = document.querySelector('.servicio-celda.resaltado-busqueda');
-        if (elementoResaltado) {
-            elementoResaltado.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Verificar que la fecha tenga el formato correcto
+        if (fechaPartes.length !== 3) {
+            // Intentar otros separadores comunes
+            if (fechaStr.includes('-')) {
+                fechaPartes = fechaStr.split('-');
+            } else if (fechaStr.includes('.')) {
+                fechaPartes = fechaStr.split('.');
+            }
+            
+            // Verificar nuevamente
+            if (fechaPartes.length !== 3) {
+                console.error("Formato de fecha inválido:", fechaStr);
+                mostrarMensajeFlotante("Error: Formato de fecha inválido", "error");
+                return;
+            }
         }
         
-        // Mostrar mensaje de confirmación
-        mostrarMensajeFlotante(`Mostrando servicios para ${criterioTexto} (${tecnicosAMostrar.length} técnicos)`, 'success');
-    }, 500);
+        console.log("DEPURACIÓN: Partes de fecha:", fechaPartes);
+        
+        // Intentar diferentes formatos de fecha
+        let fecha;
+        
+        // Intentar primero como DD/MM/YYYY
+        try {
+            const dia = parseInt(fechaPartes[0], 10);
+            const mes = parseInt(fechaPartes[1], 10) - 1;  // Meses en JS son 0-11
+            const anio = parseInt(fechaPartes[2], 10);
+            
+            console.log("DEPURACIÓN: Componentes de fecha (DD/MM/YYYY):", { dia, mes, anio });
+            
+            fecha = new Date(anio, mes, dia);
+            
+            // Verificar si la fecha es válida
+            if (isNaN(fecha.getTime())) {
+                throw new Error("Fecha inválida en formato DD/MM/YYYY");
+            }
+        } catch (e) {
+            console.log("DEPURACIÓN: Error al parsear como DD/MM/YYYY:", e);
+            
+            // Intentar como MM/DD/YYYY
+            try {
+                const mes = parseInt(fechaPartes[0], 10) - 1;
+                const dia = parseInt(fechaPartes[1], 10);
+                const anio = parseInt(fechaPartes[2], 10);
+                
+                console.log("DEPURACIÓN: Componentes de fecha (MM/DD/YYYY):", { mes, dia, anio });
+                
+                fecha = new Date(anio, mes, dia);
+                
+                // Verificar si la fecha es válida
+                if (isNaN(fecha.getTime())) {
+                    throw new Error("Fecha inválida en formato MM/DD/YYYY");
+                }
+            } catch (e2) {
+                console.log("DEPURACIÓN: Error al parsear como MM/DD/YYYY:", e2);
+                
+                // Intentar como YYYY/MM/DD
+                try {
+                    const anio = parseInt(fechaPartes[0], 10);
+                    const mes = parseInt(fechaPartes[1], 10) - 1;
+                    const dia = parseInt(fechaPartes[2], 10);
+                    
+                    console.log("DEPURACIÓN: Componentes de fecha (YYYY/MM/DD):", { anio, mes, dia });
+                    
+                    fecha = new Date(anio, mes, dia);
+                    
+                    // Verificar si la fecha es válida
+                    if (isNaN(fecha.getTime())) {
+                        throw new Error("Fecha inválida en todos los formatos probados");
+                    }
+                } catch (e3) {
+                    console.error("DEPURACIÓN: Error al parsear en todos los formatos:", e3);
+                    mostrarMensajeFlotante("Error: No se pudo interpretar la fecha", "error");
+                    return;
+                }
+            }
+        }
+        
+        console.log("DEPURACIÓN: Fecha final interpretada:", fecha);
+        
+        // Utilizar fecha actual si no se pudo determinar una fecha válida
+        if (!fecha || isNaN(fecha.getTime())) {
+            console.log("DEPURACIÓN: Usando fecha actual como respaldo");
+            fecha = new Date();
+            mostrarMensajeFlotante("Aviso: Usando fecha actual porque la fecha original no era válida", "warning");
+        }
+        
+        // Actualizar fecha seleccionada
+        fechaSeleccionada = fecha;
+        console.log("DEPURACIÓN: Fecha seleccionada actualizada:", fechaSeleccionada);
+        
+        // Cambiar a vista diaria
+        cambiarVista('diaria');
+        
+        // Actualizar la vista de fecha
+        actualizarVistaFecha();
+        
+        // Limpiar filtros previos
+        limpiarFiltros();
+        
+        // Encontrar técnicos relevantes
+        let tecnicosAMostrar = [];
+        let criterioTexto = '';
+        
+        // Asegurar que tenemos el técnico actual
+        if (tecnico && tecnico.trim() !== "") {
+            tecnicosAMostrar.push(tecnico);
+            console.log("DEPURACIÓN: Incluyendo técnico actual:", tecnico);
+        }
+        
+        // Simplificar: usar solo el técnico actual para este servicio
+        // Esto evita complejidad que podría causar errores
+        criterioTexto = tipoBusqueda === 'nv' ? `NV: ${notaVenta}` : 
+                        tipoBusqueda === 'req' ? `Requerimiento: ${valorBusqueda}` : 
+                        `Cliente: ${valorBusqueda}`;
+        
+        console.log("DEPURACIÓN: Técnicos a mostrar:", tecnicosAMostrar);
+        console.log("DEPURACIÓN: Criterio de texto:", criterioTexto);
+        
+        // Deseleccionar todos los técnicos primero
+        deseleccionarTodosTecnicos();
+        
+        // Seleccionar solo los técnicos correspondientes
+        const tecnicoChips = document.querySelectorAll('#tecnicosContainer .chip');
+        let contadorSeleccionados = 0;
+        
+        tecnicoChips.forEach(chip => {
+            const nombreTecnico = chip.textContent.trim();
+            if (tecnicosAMostrar.includes(nombreTecnico)) {
+                toggleSeleccionTecnico(chip, nombreTecnico);
+                contadorSeleccionados++;
+            }
+        });
+        
+        console.log(`DEPURACIÓN: Seleccionados ${contadorSeleccionados} técnicos de ${tecnicosAMostrar.length}`);
+        
+        // Actualizar filtros con los datos de búsqueda
+        filtros = {
+            tecnico: tecnicosAMostrar,
+            cliente: tipoBusqueda === 'cliente' ? valorBusqueda : '',
+            requerimiento: tipoBusqueda === 'req' ? valorBusqueda : '',
+            notaVenta: tipoBusqueda === 'nv' ? notaVenta : '',
+            estado: '',
+            supervisor: '',
+            region: ''
+        };
+        
+        console.log("DEPURACIÓN: Filtros aplicados:", filtros);
+        
+        // Aplicar los filtros
+        aplicarFiltros();
+        
+        // Mostrar mensaje de confirmación inmediatamente
+        mostrarMensajeFlotante(`Mostrando servicio para ${criterioTexto}`, 'success');
+        
+        // No intentar resaltar servicios para simplificar
+        console.log("DEPURACIÓN: Navegación completada correctamente");
+        
+    } catch (error) {
+        console.error("DEPURACIÓN: Error capturado en navegarAServicio:", error);
+        console.error("DEPURACIÓN: Stack trace:", error.stack);
+        console.error("DEPURACIÓN: Parámetros originales:", parametrosOriginales);
+        mostrarMensajeFlotante("Error al navegar al servicio: " + error.message, "error");
+    }
 }
 
 // 4. Función para resaltar servicios en el calendario
+// Función mejorada para resaltar servicios en el calendario
 function resaltarServiciosEnCalendario(servicios) {
     // Primero limpiar cualquier resaltado previo
     limpiarResaltadosBusqueda();
     
+    if (!servicios || servicios.length === 0) {
+        console.log("No hay servicios para resaltar");
+        return;
+    }
+    
+    console.log(`Intentando resaltar ${servicios.length} servicios en el calendario`);
+    
     // Encontrar todos los elementos de servicios en el calendario
     const celdaServicios = document.querySelectorAll('.servicio-celda');
+    console.log(`Total de celdas de servicio en el calendario: ${celdaServicios.length}`);
+    
+    let contadorResaltados = 0;
     
     celdaServicios.forEach(celda => {
         // Intentar extraer información del servicio desde el evento onclick
@@ -2559,18 +2767,23 @@ function resaltarServiciosEnCalendario(servicios) {
                     s.tecnico === servicioData.tecnico &&
                     s.fecha === servicioData.fecha &&
                     s.horaInicio === servicioData.horaInicio &&
-                    s.notaVenta === servicioData.notaVenta
+                    (s.notaVenta === servicioData.notaVenta || 
+                     !s.notaVenta || 
+                     !servicioData.notaVenta)
                 );
                 
                 if (coincide) {
                     // Agregar clase de resaltado
                     celda.classList.add('resaltado-busqueda', 'parpadeo');
+                    contadorResaltados++;
                 }
             } catch (error) {
-                console.error('Error al extraer datos del servicio:', error);
+                console.error('Error al extraer datos del servicio:', error, onclickAttr);
             }
         }
     });
+    
+    console.log(`Se resaltaron ${contadorResaltados} servicios en el calendario`);
 }
 
 // 5. Función para limpiar resaltados de búsqueda anteriores
