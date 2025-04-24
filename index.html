@@ -1,0 +1,3463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1e40af">
+    <title>Sistema de Gestión de Servicios Técnicos</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+/* Estilos base */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+    padding: 0;
+    min-width: 320px;
+    height: auto;
+    overflow: auto;
+}
+
+.supervisor-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 5px;
+    border-radius: 50%;
+}
+
+.servicio-celda-supervisor {
+    border-right: 4px solid;
+}
+
+.container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 0.5rem;
+    box-sizing: border-box;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Navbar */
+.navbar {
+    background-color: #1e40af;
+    color: white;
+    padding: 0.25rem;
+    width: 100%;
+    box-sizing: border-box;
+    flex-shrink: 0;
+    position: relative;
+    height: auto;
+    min-height: initial;
+}
+
+.navbar .container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar h1.text-xl {
+    font-size: 1rem;
+}
+
+.navbar p.text-sm {
+    font-size: 0.75rem;
+}
+
+/* Vista selector */
+.vista-selector {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    justify-content: center;
+    padding: 0.25rem;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+}
+
+.vista-btn {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid #1e40af;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.vista-btn.activo {
+    background-color: #1e40af;
+    color: white;
+}
+
+.vista-btn:not(.activo) {
+    background-color: white;
+    color: #1e40af;
+}
+
+/* Toggle Filtros */
+.toggle-filtros {
+    background-color: #1e40af;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    width: 100%;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.toggle-filtros:hover {
+    background-color: #1e3a8a;
+}
+
+.toggle-filtros span {
+    transition: transform 0.3s ease;
+}
+
+.toggle-filtros.expanded span:first-child {
+    transform: rotate(180deg);
+}
+
+/* Filtros Container */
+.filtros-container {
+    background-color: white;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    max-height: 600px;
+    overflow: hidden;
+    /* Inicialmente oculto */
+    max-height: 0;
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+}
+
+.filtros-container.expanded {
+    max-height: 600px;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    opacity: 1;
+}
+
+.filtros-container label {
+    font-size: 0.75rem;
+    margin-bottom: 0.125rem !important;
+}
+
+.filtros-container input,
+.filtros-container select {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem !important;
+    height: 1.75rem;
+}
+
+/* Date Navigator */
+.date-navigator {
+    background-color: white;
+    padding: 0.25rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+}
+
+.date-navigator .flex {
+    gap: 0.25rem;
+}
+
+.date-button {
+    background-color: #1e40af;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    font-size: 0.75rem;
+}
+
+.current-date {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    background-color: #f3f4f6;
+    min-width: 180px;
+    text-align: center;
+}
+/* Calendario Grid - OPTIMIZADO PARA MÓVIL */
+.calendario-grid {
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%; /* Cambiado de max-content a 100% */
+    background-color: white;
+    table-layout: fixed;
+}
+
+.calendario-grid td:not(.hora-celda) {
+    min-width: 100px; /* Reducido de 150px a 100px */
+    width: 100px;
+    height: 50px;
+    min-height: 50px;
+    border: 1px solid #e5e7eb;
+    padding: 0;
+    position: relative;
+}
+
+.calendario-grid .tecnico-header {
+    position: sticky;
+    top: 0;
+    z-index: 14;
+    min-width: 100px; /* Reducido de 150px a 100px */
+    width: 100px;
+    background-color: #1e40af;
+    color: white;
+    font-weight: 600;
+    text-align: center !important;
+    padding: 4px !important;
+    border-bottom: 3px solid #1e3a8a !important;
+    white-space: normal;
+    word-wrap: break-word;
+    height: auto;
+    font-size: 0.7rem !important; /* Reducido para mejor ajuste en móviles */
+}
+
+.hora-celda {
+    position: sticky;
+    left: 0;
+    z-index: 15;
+    width: 40px; /* Reducido de 50px a 40px */
+    min-width: 40px;
+    text-align: center !important;
+    background-color: #f8fafc;
+    color: #64748b;
+    font-weight: 500;
+    border-right: 2px solid #e5e7eb !important;
+    padding: 4px !important;
+    height: 50px;
+    min-height: 50px;
+    font-size: 0.7rem; /* Reducido para mejor ajuste en móviles */
+}
+
+/* Calendario Semanal - OPTIMIZADO PARA MÓVIL */
+.calendario-grid-semanal {
+    border-collapse: collapse;
+    width: 100%;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    table-layout: fixed;
+}
+
+.calendario-grid-semanal td {
+    border: 1px solid #e5e7eb;
+    padding: 4px;
+    vertical-align: top;
+    height: 100px;
+    min-width: 70px; /* Añadido para móviles */
+}
+
+.calendario-grid-semanal .tecnico-header {
+    background-color: #1e40af;
+    color: white;
+    padding: 4px !important;
+    position: sticky;
+    left: 0;
+    z-index: 6;
+    white-space: normal;
+    min-width: 80px; /* Reducido de 100px a 80px */
+    max-width: 80px;
+    text-align: left !important;
+    word-wrap: break-word;
+    height: auto;
+    vertical-align: middle;
+    font-size: 0.65rem; /* Reducido para mejor ajuste en móviles */
+}
+
+.calendario-grid-semanal .dia-header {
+    font-size: 0.65rem; /* Reducido para mejor ajuste en móviles */
+    padding: 4px !important;
+}
+
+.calendario-grid-semanal th:first-child {
+    min-width: 80px; /* Reducido de 100px a 80px */
+    max-width: 80px;
+    width: 80px;
+}
+
+/* Calendario Container - OPTIMIZADO PARA MÓVIL */
+.calendario-container {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    position: relative;
+    transition: height 0.3s ease;
+    max-height: none !important;
+    -webkit-overflow-scrolling: touch; /* Mejor desplazamiento en iOS */
+}
+
+/* Servicios - OPTIMIZADO PARA MÓVIL */
+.servicios-multiples {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+.servicio-celda {
+    border-radius: 3px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+    cursor: pointer;
+    margin: 1px;
+    box-sizing: border-box;
+    background-color: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.servicio-celda:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 20 !important;
+}
+
+/* Mejorar el tap en móviles */
+@media (max-width: 768px) {
+    .servicio-celda {
+        padding: 4px; /* Más padding para mejor tap area */
+    }
+    
+    .servicio-celda:active {
+        background-color: rgba(0,0,0,0.05); /* Feedback visual al tocar */
+    }
+}
+
+.servicio-contenido {
+    padding: 2px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    overflow: hidden;
+}
+
+.servicio-contenido > div {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.servicio-contenido .font-medium {
+    font-size: 0.65rem; /* Reducido de 0.7rem */
+}
+
+.servicio-contenido .text-xs {
+    font-size: 0.6rem; /* Reducido de 0.65rem */
+}
+
+/* Estados de servicios */
+.servicio-programado {
+    background-color: #e8f5e9 !important;
+    border-left: 4px solid #2e7d32 !important;
+}
+
+.servicio-cerrado {
+    background-color: #eeeeee !important;
+    border-left: 4px solid #757575 !important;
+}
+
+.servicio-reservado {
+    background-color: #fff3e0 !important;
+    border-left: 4px solid #f57c00 !important;
+}
+
+/* Estilo para traslados */
+.servicio-traslado {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #1976d2 !important;
+}
+
+/* Estilo para resaltado de búsqueda */
+.resaltado-busqueda {
+    box-shadow: 0 0 0 3px #fb8c00, 0 0 15px rgba(251, 140, 0, 0.5) !important;
+    transform: scale(1.03) !important;
+    z-index: 25 !important;
+    position: relative;
+}
+
+.resaltado-busqueda::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px dashed white;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+.parpadeo {
+    animation: parpadear 1.5s ease-in-out 3;
+}
+
+@keyframes parpadear {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Panel de resultados - OPTIMIZADO PARA MÓVIL */
+.panel-resultados {
+    background-color: white;
+    padding: 0.75rem; /* Reducido de 1rem */
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    animation: slideDown 0.3s ease-in-out;
+    font-size: 0.875rem; /* Tamaño de fuente base más pequeño */
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Headers y Celdas Especiales */
+.dia-header {
+    background-color: #1e40af;
+    color: white;
+    font-weight: 600;
+    text-align: center;
+    padding: 4px !important;
+    border-bottom: 3px solid #1e3a8a;
+    position: sticky;
+    top: 0;
+    z-index: 13;
+}
+
+.hora-actual {
+    background-color: #fef3c7;
+}
+
+/* Modal - OPTIMIZADO PARA MÓVIL */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    overflow-y: auto; /* Permitir scroll si modal es más grande que la pantalla */
+    padding: 10px; /* Padding para evitar que toque los bordes */
+}
+
+.modal-content {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    width: 95%; /* Aumentado de 90% para usar más espacio */
+    max-width: 500px;
+    position: relative;
+    max-height: 90vh; /* Aumentado de 85vh para usar más espacio */
+    overflow-y: auto;
+    font-size: 0.875rem;
+    margin: auto; /* Centrar en pantalla */
+}
+
+.modal-close {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #374151;
+    padding: 8px; /* Área de tap más grande */
+}
+
+.modal-field {
+    margin-bottom: 0.5rem; /* Aumentado para mejor espaciado en móviles */
+}
+
+/* Scroll personalizado */
+.calendario-container::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.calendario-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.calendario-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.calendario-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Responsive - MEJORADO PARA DIFERENTES TAMAÑOS */
+@media (max-width: 768px) {
+    .navbar .container {
+        flex-direction: column;
+        text-align: center;
+        padding: 0.5rem;
+    }
+    
+    .navbar h1.text-xl {
+        font-size: 0.875rem; /* Título más pequeño en móvil */
+    }
+    
+    .navbar p.text-sm {
+        font-size: 0.7rem; /* Subtítulo más pequeño en móvil */
+    }
+
+    .filtros-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Mejorar calendarios para móvil */
+    .calendario-grid-semanal {
+        font-size: 0.75rem;
+    }
+    
+    .calendario-grid-semanal .tecnico-header {
+        padding: 2px !important;
+        min-width: 70px;
+        max-width: 70px;
+        width: 70px;
+    }
+    
+    /* Botones más pequeños en el navegador de fechas */
+    .date-navigator .flex {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .date-button {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+    
+    .current-date {
+        min-width: 100px;
+        font-size: 0.75rem;
+        padding: 0.2rem;
+    }
+    
+    /* Ajustes para los filtros */
+    .filtro-grupo {
+        padding: 0.5rem;
+    }
+    
+    .chip {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+    }
+    
+    /* Ajustes para vista mensual */
+    .calendario-mensual th {
+        font-size: 0.65rem;
+        padding: 2px !important;
+    }
+    
+    .calendario-mensual .dia-numero {
+        font-size: 0.75rem;
+    }
+    
+    .calendario-mensual .servicios-dia {
+        font-size: 0.65rem;
+        max-height: 60px; /* Reducir altura en móvil */
+    }
+    
+    /* Ajustes para el buscador */
+    .busqueda-tipo {
+        width: 120px;
+    }
+    
+    .select-tipo,
+    .input-busqueda {
+        padding: 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .boton-buscar {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.75rem;
+    }
+    
+    /* Botones de estado más pequeños */
+    .estado-btn {
+        padding: 0.2rem 0.4rem !important;
+        font-size: 0.7rem !important;
+    }
+    
+    /* Servicios mini en vista mensual */
+    .servicio-mini {
+        padding: 1px 2px;
+        font-size: 0.6rem;
+    }
+    
+    /* Zoom controls más pequeños */
+    .zoom-btn {
+        padding: 0.2rem 0.3rem !important;
+        font-size: 0.65rem !important;
+    }
+}
+
+/* Ajustes específicos para pantallas muy pequeñas */
+@media (max-width: 480px) {
+    .navbar h1.text-xl {
+        font-size: 0.8rem;
+    }
+    
+    .date-navigator .flex {
+        gap: 0.2rem;
+    }
+    
+    .date-button, .current-date {
+        font-size: 0.65rem;
+        padding: 0.2rem 0.3rem;
+    }
+    
+    .vista-btn {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.7rem;
+    }
+    
+    .calendario-grid td:not(.hora-celda),
+    .hora-celda {
+        min-width: 80px; /* Reducir aún más para pantallas pequeñas */
+        width: 80px;
+    }
+    
+    .tecnico-header {
+        font-size: 0.65rem !important;
+        min-width: 80px;
+        width: 80px;
+    }
+    
+    .hora-celda {
+        width: 35px;
+        min-width: 35px;
+    }
+    
+    /* Optimizar leyenda para pantallas pequeñas */
+    .leyenda-item {
+        font-size: 0.65rem;
+    }
+    
+    .leyenda-color {
+        width: 0.75rem;
+        height: 0.75rem;
+    }
+    
+    /* Reducir aún más el tamaño de los chips de filtro */
+    .chip {
+        padding: 0.15rem 0.3rem;
+        font-size: 0.65rem;
+    }
+    
+    /* Ajustar buscador unificado */
+    .busqueda-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .busqueda-tipo {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .boton-buscar {
+        width: 100%;
+        border-radius: 0 0 0.25rem 0.25rem;
+    }
+}
+
+@media (max-height: 800px) {
+    .calendario-grid td:not(.hora-celda),
+    .hora-celda {
+        height: 45px;
+        min-height: 45px;
+    }
+}
+
+@media (max-height: 600px) {
+    .calendario-grid td:not(.hora-celda),
+    .hora-celda {
+        height: 40px;
+        min-height: 40px;
+    }
+}
+
+/* Leyenda de colores */
+.leyenda-colores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background-color: white;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.leyenda-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.leyenda-color {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    border-left: 3px solid;
+}
+
+.leyenda-programado {
+    background-color: #e8f5e9;
+    border-left-color: #2e7d32;
+}
+
+.leyenda-cerrado {
+    background-color: #eeeeee;
+    border-left-color: #757575;
+}
+
+.leyenda-reservado {
+    background-color: #fff3e0;
+    border-left-color: #f57c00;
+}
+
+.leyenda-traslado {
+    background-color: #e3f2fd;
+    border-left-color: #1976d2;
+}
+
+/* Pie de página */
+.footer {
+    padding: 10px;
+    text-align: center;
+    background-color: #f1f1f1;
+    border-top: 1px solid #ddd;
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* Correcciones para el espacio azul grande */
+.container.mb-8 {
+    min-height: auto;
+}
+
+.navbar + div {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+/* Eliminar cualquier espacio extra entre componentes */
+.vista-selector, .date-navigator, .leyenda-colores, .toggle-filtros, .filtros-container {
+    margin-bottom: 0.5rem;
+}
+
+/* Forzar altura automática en elementos que podrían estar causando el espacio */
+.navbar div, .navbar + div, .container > div:first-child {
+    height: auto !important;
+    min-height: auto !important;
+}
+
+/* Estilos para filtros por estado */
+.estado-btn {
+    transition: all 0.2s ease;
+    position: relative;
+}
+  
+.estado-btn.activo {
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+  
+.estado-btn.activo::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 3px;
+    background-color: #1e40af;
+    border-radius: 3px;
+}
+
+/* Estilos para vista mensual - OPTIMIZADO PARA MÓVIL */
+.calendario-mensual {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    table-layout: fixed;
+}
+
+.calendario-mensual th {
+    background-color: #1e40af;
+    color: white;
+    padding: 4px; /* Reducido de 6px */
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.7rem; /* Reducido de 0.8rem */
+}
+
+.calendario-mensual td {
+    border: 1px solid #e5e7eb;
+    height: 80px; /* Reducido de 100px */
+    vertical-align: top;
+    width: calc(100% / 7);
+    padding: 2px; /* Reducido de 4px */
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .calendario-mensual td {
+        height: 60px; /* Aún más reducido para móviles */
+    }
+}
+
+@media (max-width: 480px) {
+    .calendario-mensual td {
+        height: 50px; /* Mínimo para móviles pequeños */
+    }
+}
+
+.calendario-mensual .dia-numero {
+    position: absolute;
+    top: 2px; /* Reducido de 4px */
+    right: 4px; /* Reducido de 6px */
+    font-size: 0.75rem; /* Reducido de 0.85rem */
+    color: #64748b;
+    font-weight: 500;
+}
+
+.calendario-mensual .fuera-mes {
+    background-color: #f8fafc;
+    color: #94a3b8;
+}
+
+.calendario-mensual .hoy {
+    background-color: #fef3c7;
+}
+
+.calendario-mensual .servicios-dia {
+    margin-top: 16px; /* Reducido de 20px */
+    font-size: 0.65rem; /* Reducido de 0.7rem */
+    max-height: 65px; /* Reducido de 80px */
+    overflow-y: auto;
+}
+
+.calendario-mensual .indicador-cantidad {
+    position: absolute;
+    bottom: 3px; /* Reducido de 5px */
+    right: 3px; /* Reducido de 5px */
+    font-size: 0.65rem; /* Reducido de 0.7rem */
+    font-weight: 600;
+    background-color: #1e40af;
+    color: white;
+    border-radius: 10px;
+    padding: 0 5px; /* Reducido para móviles */
+}
+
+.dia-con-servicios {
+    box-shadow: inset 0 0 0 2px #1e40af;
+}
+
+.indicador-ocupacion {
+    display: inline-block;
+    height: 7px; /* Reducido de 8px */
+    width: 7px; /* Reducido de 8px */
+    border-radius: 50%;
+    margin-right: 2px; /* Reducido de 3px */
+}
+
+.ocupacion-baja {
+    background-color: #10b981; /* verde */
+}
+
+.ocupacion-media {
+    background-color: #f59e0b; /* amarillo */
+}
+
+.ocupacion-alta {
+    background-color: #ef4444; /* rojo */
+}
+
+/* Estilo para servicios mini en la vista mensual */
+.servicio-mini {
+    padding: 1px 3px; /* Reducido de 2px 4px */
+    margin-bottom: 1px; /* Reducido de 2px */
+    border-radius: 2px; /* Reducido de 3px */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.6rem; /* Reducido de 0.65rem */
+    cursor: pointer;
+}
+
+/* Estilos para zoom en vista diaria */
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    background-color: white;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.zoom-controls.hidden {
+    display: none;
+}
+
+.zoom-btn {
+    transition: all 0.2s;
+}
+
+.zoom-btn.zoom-active {
+    background-color: #1e40af;
+    color: white;
+    font-weight: 500;
+}
+
+/* NUEVOS ESTILOS PARA FILTROS MEJORADOS */
+.filtro-grupo {
+    background-color: #f9fafb;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+}
+
+/* Mejoras para móviles */
+@media (max-width: 768px) {
+    .filtro-grupo {
+        padding: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+}
+
+.filtro-titulo {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #1e40af;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+.chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* Ajuste para mejor usabilidad en móviles */
+@media (max-width: 768px) {
+    .chip-container {
+        gap: 0.3rem;
+    }
+}
+
+.chip {
+    background-color: #e5e7eb;
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    user-select: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+/* Mejorar área de tap en móviles */
+@media (max-width: 768px) {
+    .chip {
+        padding: 0.3rem 0.5rem;
+        min-height: 28px; /* Altura mínima para mejor tap target */
+    }
+}
+
+.chip:hover {
+    background-color: #d1d5db;
+}
+
+.chip.selected {
+    background-color: #1e40af;
+    color: white;
+}
+
+.chip-icon {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.acciones-filtro {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+}
+
+.accion-link {
+    color: #1e40af;
+    cursor: pointer;
+    margin-right: 1rem;
+    transition: all 0.2s;
+    display: inline-block; /* Mejor área de tap */
+    padding: 3px 0; /* Mejor área de tap vertical */
+}
+
+.accion-link:hover {
+    text-decoration: underline;
+}
+
+.busqueda-rapida {
+    margin-bottom: 0.5rem;
+    position: relative;
+}
+
+.busqueda-rapida input {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    padding-left: 2rem;
+    font-size: 0.875rem;
+}
+
+/* Mejorar campos en móviles */
+@media (max-width: 768px) {
+    .busqueda-rapida input {
+        padding: 0.5rem 0.75rem 0.5rem 2rem; /* Más alto para mejor tap */
+        font-size: 0.8rem;
+    }
+}
+
+.busqueda-rapida svg {
+    position: absolute;
+    left: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+}
+
+/* Estilos para el buscador unificado - OPTIMIZADO PARA MÓVIL */
+.buscador-unificado {
+    display: flex;
+    background-color: #f1f5f9;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Ajustes especiales para móviles pequeños */
+@media (max-width: 480px) {
+    .buscador-unificado {
+        padding: 0.5rem;
+    }
+
+    /* Reorganizar elementos para pantallas pequeñas */
+    .busqueda-wrapper {
+        flex-direction: column;
+    }
+
+    .busqueda-tipo {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .input-busqueda {
+        width: 100%;
+    }
+
+    .boton-buscar {
+        border-radius: 0 0 0.25rem 0.25rem;
+        width: 100%;
+        height: 40px;
+    }
+}
+
+.busqueda-wrapper {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    background-color: white;
+    border-radius: 0.375rem;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+.busqueda-tipo {
+    width: 160px;
+    border-right: 1px solid #e2e8f0;
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Reducir ancho en tablets */
+@media (max-width: 768px) and (min-width: 481px) {
+    .busqueda-tipo {
+        width: 130px;
+    }
+}
+
+.select-tipo {
+    width: 100%;
+    border: none;
+    padding: 0.625rem;
+    font-size: 0.875rem;
+    background-color: white;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%231e40af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1rem;
+    padding-right: 2rem;
+    color: #1e40af;
+    font-weight: 500;
+}
+
+.select-tipo:focus {
+    outline: none;
+}
+
+.busqueda-input {
+    flex-grow: 1;
+}
+
+.input-busqueda {
+    width: 100%;
+    border: none;
+    padding: 0.625rem;
+    font-size: 0.875rem;
+    outline: none;
+}
+
+/* Optimizar para tap en móviles */
+@media (max-width: 768px) {
+    .select-tipo, 
+    .input-busqueda {
+        padding: 0.75rem; /* Más alto para better tap */
+        font-size: 0.8rem;
+    }
+}
+
+.boton-buscar {
+    background-color: #1e40af;
+    color: white;
+    border: none;
+    border-radius: 0 0.25rem 0.25rem 0;
+    padding: 0.625rem 1.25rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    height: 100%;
+}
+
+.boton-buscar:hover {
+    background-color: #1e3a8a;
+}
+
+/* Optimizar para tap en móviles */
+@media (max-width: 768px) {
+    .boton-buscar {
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        min-height: 44px; /* Alto mínimo para área tap */
+    }
+}
+
+/* Estilo para mensajes flotantes - MEJORADO PARA MÓVIL */
+.mensaje-flotante {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 12px 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    font-size: 14px;
+    max-width: 300px;
+    animation: slideInRight 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+}
+
+/* Ajustar para pantallas pequeñas */
+@media (max-width: 480px) {
+    .mensaje-flotante {
+        top: 10px;
+        right: 10px;
+        left: 10px; /* Añadir para centrar en móviles */
+        max-width: calc(100% - 20px);
+        padding: 10px 15px;
+        font-size: 13px;
+    }
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.no-resultados {
+    background-color: #fee2e2;
+    border-left: 4px solid #ef4444;
+    color: #b91c1c;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Reducir padding en móviles */
+@media (max-width: 480px) {
+    .no-resultados {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+    
+    .no-resultados svg {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+/* Nueva Sección: Vista Móvil de Solo Servicios */
+.vista-movil-servicios {
+    display: none; /* Oculto por defecto, solo visible en móviles */
+}
+
+@media (max-width: 640px) {
+    .vista-movil-servicios {
+        display: block;
+        margin-top: 1rem;
+    }
+    
+    .btn-vista-movil {
+        display: block;
+        width: 100%;
+        background-color: #1e40af;
+        color: white;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .lista-servicios-movil {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+    
+    .servicio-item-movil {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .servicio-item-movil:last-child {
+        border-bottom: none;
+    }
+    
+    .servicio-item-movil .tiempo {
+        font-weight: 600;
+        color: #1e40af;
+        margin-bottom: 0.25rem;
+    }
+    
+    .servicio-item-movil .cliente {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+    
+    .servicio-item-movil .detalles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: #6b7280;
+    }
+    
+    .servicio-item-movil .detalle {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .no-servicios-movil {
+        padding: 2rem 1rem;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    /* Ocultar vista calendario en móviles pequeños cuando se activa vista de lista */
+    .calendario-container.oculto-movil {
+        display: none;
+    }
+}
+    </style>
+</head>
+<body>
+    <!-- Barra de navegación -->
+    <div class="navbar">
+        <div class="container flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <div>
+                    <h1 class="text-xl font-bold">Sistema de Gestión de Servicios Técnicos</h1>
+                    <p class="text-sm opacity-80" id="fecha-actual"></p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="ultima-actualizacion" class="text-sm"></span>
+                <button onclick="cargarDatos()" 
+                        class="bg-white text-blue-800 px-4 py-2 rounded-lg text-sm font-medium 
+                               hover:bg-blue-50 transition-colors duration-200">
+                    Actualizar Datos
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mb-8">
+        <!-- Selector de vista -->
+        <div class="vista-selector">
+            <button onclick="cambiarVista('diaria')" class="vista-btn activo" id="btn-diaria">Vista Diaria</button>
+            <button onclick="cambiarVista('semanal')" class="vista-btn" id="btn-semanal">Vista Semanal</button>
+            <button onclick="cambiarVista('mensual')" class="vista-btn" id="btn-mensual">Vista Mensual</button>
+        </div>
+
+        <!-- NUEVO: Buscador unificado para NV, Requerimiento y Cliente -->
+        <div class="buscador-unificado">
+            <div class="busqueda-wrapper">
+                <div class="busqueda-tipo">
+                    <select id="tipo-busqueda" class="select-tipo">
+                        <option value="nv">Nota de Venta</option>
+                        <option value="req">Requerimiento</option>
+                        <option value="cliente">Cliente</option>
+                    </select>
+                </div>
+                <div class="busqueda-input">
+                    <input type="text" id="busqueda-valor" placeholder="Ingrese su búsqueda..." class="input-busqueda">
+                </div>
+                <button onclick="buscarServicio()" class="boton-buscar">Buscar</button>
+            </div>
+        </div>
+
+        <!-- Zoom Controls para vista diaria -->
+        <div class="zoom-controls hidden" id="zoom-controls">
+            <span class="text-sm text-gray-600 mr-2">Escala:</span>
+            <div class="flex items-center space-x-1">
+                <button class="zoom-btn px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100" data-zoom="30" onclick="cambiarZoom(30)">30 min</button>
+                <button class="zoom-btn px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100 zoom-active" data-zoom="60" onclick="cambiarZoom(60)">1 hora</button>
+                <button class="zoom-btn px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-100" data-zoom="120" onclick="cambiarZoom(120)">2 horas</button>
+            </div>
+        </div>
+
+        <!-- Navegador de fechas -->
+        <div class="date-navigator shadow-sm bg-white rounded-lg p-4 mb-4">
+            <div class="flex flex-wrap justify-center items-center gap-4">
+                <button onclick="cambiarPeriodo(-1)" class="date-button bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" id="btn-anterior">
+                    ← Anterior
+                </button>
+                <input type="date" id="fecha-picker" class="date-picker border rounded px-3 py-2" onchange="seleccionarFecha(this.value)">
+                <span class="current-date font-semibold px-4 py-2 bg-gray-100 rounded" id="fecha-seleccionada"></span>
+                <button onclick="cambiarPeriodo(1)" class="date-button bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" id="btn-siguiente">
+                    Siguiente →
+                </button>
+                <button onclick="irAHoy()" class="date-button bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Hoy
+                </button>
+            </div>
+        </div>
+
+        <!-- Leyenda de colores para estados -->
+        <div class="leyenda-colores">
+            <div class="text-sm text-gray-600 font-medium mb-1">Estados:</div>
+            <div class="flex flex-wrap gap-2">
+                <div class="leyenda-item">
+                    <div class="leyenda-color leyenda-programado"></div>
+                    <span>Programado</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color leyenda-reservado"></div>
+                    <span>Reservado</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color leyenda-cerrado"></div>
+                    <span>Cerrado</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="leyenda-color leyenda-traslado"></div>
+                    <span>Traslado</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leyenda de supervisores -->
+        <div class="leyenda-colores mt-2">
+            <div class="text-sm text-gray-600 font-medium mb-1">Supervisores:</div>
+            <div class="flex flex-wrap gap-2">
+                <div class="leyenda-item">
+                    <div class="supervisor-indicator" style="background-color: #4CAF50;"></div>
+                    <span>Cristian Pimentel</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="supervisor-indicator" style="background-color: #2196F3;"></div>
+                    <span>Ignacio Cubillos</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="supervisor-indicator" style="background-color: #FF9800;"></div>
+                    <span>Jonathan Miranda</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="supervisor-indicator" style="background-color: #9C27B0;"></div>
+                    <span>Josbel Villarroel</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="supervisor-indicator" style="background-color: #E91E63;"></div>
+                    <span>Soleil Arcaya</span>
+                </div>
+                <div class="leyenda-item">
+                    <div class="supervisor-indicator" style="background-color: #607D8B;"></div>
+                    <span>Victor Chavez</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtrado por estado -->
+        <div class="flex flex-col space-y-2 mb-4">
+            <div class="text-sm text-gray-600 font-medium">Filtrar por estado:</div>
+            <div class="flex flex-wrap gap-2">
+                <button id="filtro-todos" class="estado-btn activo px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100">
+                    Todos
+                </button>
+                <button id="filtro-programado" class="estado-btn px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100 bg-green-50 border-green-500">
+                    Programado
+                </button>
+                <button id="filtro-reservado" class="estado-btn px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100 bg-orange-50 border-orange-500">
+                    Reservado
+                </button>
+                <button id="filtro-cerrado" class="estado-btn px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100 bg-gray-100 border-gray-500">
+                    Cerrado
+                </button>
+                <button id="filtro-traslado" class="estado-btn px-3 py-1 text-sm rounded border border-gray-300 hover:bg-gray-100 bg-blue-50 border-blue-500">
+                    Traslado
+                </button>
+            </div>
+        </div>
+
+        <!-- Botón para mostrar/ocultar filtros -->
+        <button id="toggleFiltros" class="toggle-filtros">
+            <span id="filtrosIcon">▼</span>
+            <span class="toggle-text">Mostrar filtros</span>
+        </button>
+
+        <!-- Panel de filtros MEJORADO - Inicialmente oculto -->
+        <div class="filtros-container" id="filtrosContainer">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Filtro de técnicos MEJORADO -->
+                <div class="filtro-grupo">
+                    <div class="filtro-titulo">
+                        <span>Técnicos</span>
+                        <span class="ml-2 text-xs text-gray-500" id="contadorTecnicos">(0 seleccionados)</span>
+                    </div>
+                    
+                    <div class="busqueda-rapida">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        <input type="text" placeholder="Buscar técnico..." id="buscarTecnico" onkeyup="filtrarTecnicos()">
+                    </div>
+                    
+                    <div class="acciones-filtro">
+                        <span class="accion-link" onclick="seleccionarTodosTecnicos()">Seleccionar todos</span>
+                        <span class="accion-link" onclick="deseleccionarTodosTecnicos()">Deseleccionar todos</span>
+                    </div>
+                    
+                    <div class="chip-container" id="tecnicosContainer">
+                        <!-- Los chips de técnicos se generarán dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Filtro de supervisores MEJORADO -->
+                <div class="filtro-grupo">
+                    <div class="filtro-titulo">
+                        <span>Supervisores</span>
+                        <span class="ml-2 text-xs text-gray-500" id="contadorSupervisores">(0 seleccionados)</span>
+                    </div>
+                    
+                    <div class="acciones-filtro">
+                        <span class="accion-link" onclick="seleccionarTodosSupervisores()">Seleccionar todos</span>
+                        <span class="accion-link" onclick="deseleccionarTodosSupervisores()">Deseleccionar todos</span>
+                    </div>
+                    
+                    <div class="chip-container" id="supervisoresContainer">
+                        <!-- Los chips de supervisores se generarán dinámicamente -->
+                    </div>
+                </div>
+                
+                <!-- Filtro por Región NUEVO -->
+                <div class="filtro-grupo">
+                    <div class="filtro-titulo">
+                        <span>Filtrar por Región</span>
+                    </div>
+                    
+                    <div class="acciones-filtro mb-2">
+                        <span class="accion-link" onclick="seleccionarRegion('todas')">Todas las regiones</span>
+                    </div>
+                    
+                    <div class="chip-container" id="regionesContainer">
+                        <div class="chip" onclick="seleccionarRegion('iquique')">Iquique</div>
+                        <div class="chip" onclick="seleccionarRegion('antofagasta')">Antofagasta</div>
+                        <div class="chip" onclick="seleccionarRegion('laserena')">La Serena</div>
+                        <div class="chip" onclick="seleccionarRegion('valparaiso')">V Región</div>
+                        <div class="chip" onclick="seleccionarRegion('rm')">RM</div>
+                        <div class="chip" onclick="seleccionarRegion('rancagua')">Rancagua</div>
+                        <div class="chip" onclick="seleccionarRegion('talca')">Talca</div>
+                        <div class="chip" onclick="seleccionarRegion('chillan')">Chillán</div>
+                        <div class="chip" onclick="seleccionarRegion('losangeles')">Los Ángeles</div>
+                        <div class="chip" onclick="seleccionarRegion('concepcion')">Concepción</div>
+                        <div class="chip" onclick="seleccionarRegion('temuco')">Temuco</div>
+                        <div class="chip" onclick="seleccionarRegion('osorno')">Osorno</div>
+                        <div class="chip" onclick="seleccionarRegion('puertomontt')">Puerto Montt</div>
+                        <div class="chip" onclick="seleccionarRegion('sisa')">SISA</div>
+                        <div class="chip" onclick="seleccionarRegion('jumbo')">JUMBO</div>
+                        <div class="chip" onclick="seleccionarRegion('tottus')">TOTTUS/WALMART</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end mt-4 space-x-2">
+                <button onclick="aplicarFiltros()" 
+                        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+                    Aplicar Filtros
+                </button>
+                <button onclick="limpiarFiltros()" 
+                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors">
+                    Limpiar Filtros
+                </button>
+            </div>
+        </div>
+
+        <!-- Estado de carga -->
+        <div id="estado-carga" class="hidden bg-blue-100 text-blue-700 p-4 rounded-lg mb-4">
+            Actualizando datos...
+        </div>
+
+        <!-- Mensajes de error -->
+        <div id="error-mensaje" class="hidden"></div>
+
+        <!-- Calendario -->
+        <div class="calendario-container bg-white rounded-lg shadow-sm overflow-x-auto">
+            <div id="calendario" class="p-4"></div>
+        </div>
+    </div> <!-- Cierre del div container mb-8 -->
+
+    <!-- Pie de página con leyenda -->
+    <div class="footer bg-gray-100 border-t border-gray-200 py-2 px-4 text-center text-sm text-gray-600 mt-auto">
+        Visor perteneciente a Cristian Pimentel
+    </div>
+
+    <!-- Modal de Servicio -->
+    <div id="servicioModal" class="modal">
+        <div class="modal-content">
+            <button onclick="cerrarModal()" class="absolute right-4 top-4 text-gray-600 hover:text-gray-800">&times;</button>
+            <div id="modalContenido" class="mt-2"></div>
+        </div>
+    </div>
+
+<script>
+// Configuración y variables globales
+const SPREADSHEET_ID = '18PsFGGAf1pQ5gq1Ic-52iETlalSl3ywq166UZ2GSPKA';
+const API_KEY = 'AIzaSyCAPtV0MImSxBK8CiY9nMwpj_YM0_6PAT8';
+const RANGE = 'Hoja 1!A:O';
+const coloresSupervisores = {
+    'Cristian Pimentel': '#4CAF50', // Verde
+    'Ignacio Cubillos': '#2196F3',  // Azul
+    'Jonathan Miranda': '#FF9800',    // Naranja
+    'Josbel Villarroel': '#9C27B0', // Púrpura
+    'Soleil Arcaya': '#E91E63',     // Rosa
+    'Victor Chavez': '#607D8B'      // Gris azulado
+};
+
+let servicios = [];
+let traslados = [];
+let tecnicos = [];
+let fechaSeleccionada = new Date();
+let fechasConServicios = new Set();
+let vistaActual = 'diaria';
+let zoomLevel = 60; // Por defecto: 60 minutos (1 hora por celda)
+let filtros = {
+    tecnico: '',
+    cliente: '',
+    requerimiento: '',
+    notaVenta: '',
+    estado: '',
+    supervisor: '',
+    region: ''  // Nuevo filtro por región
+};
+
+// Variables para los filtros mejorados
+let tecnicosSeleccionados = [];
+let supervisoresSeleccionados = [];
+let regionSeleccionada = '';
+
+// Mapa de regiones y sus técnicos correspondientes
+const regionesTecnicos = {
+    'iquique': ['Hector Loaiza'],
+    'antofagasta': ['Beato Paula', 'Enzo Rodriguez'],
+    'laserena': ['Julian Cantillanes', 'Julian Herrera'],
+    'valparaiso': ['Claudio Lopez', 'Alejandro Mena', 'Gabriel Cifuentes', 'Juan Chandía', 'Enrico Ramirez'],
+    'rm': ['Jonathan Huichalaf', 'Victor Chávez', 'José Riquelme'],
+    'rancagua': ['Juan Rojas', 'Sergio Cavieres'],
+    'talca': ['Marcelo Rivero', 'Sergio Ibañez'],
+    'chillan': ['Marco Ayala'],
+    'losangeles': ['Fredy Gallardo'],
+    'concepcion': ['Victor Valdebenito', 'Felipe Santos'],
+    'temuco': ['Rogelio Lagos'],
+    'osorno': ['Manuel Urrutia'],
+    'puertomontt': ['Juan Gonzalez'],
+    'sisa': ['Jose Cea'],
+    'jumbo': ['Manuel Venegas', 'Alejandro Robles', 'Karlo Zambrano', 'Sergio Viloria', 'Bastian Garrido'],
+    'tottus': ['Jose Gonzalez', 'Hugo Morales']
+};
+
+// Función para seleccionar una región y filtrar técnicos
+function seleccionarRegion(region) {
+    // Actualizar la UI para mostrar la región seleccionada
+    const regionChips = document.querySelectorAll('#regionesContainer .chip');
+    regionChips.forEach(chip => {
+        chip.classList.remove('selected');
+    });
+    
+    // Si es "todas", deseleccionar todos los técnicos
+    if (region === 'todas') {
+        regionSeleccionada = '';
+        // Mostrar mensaje de selección
+        mostrarMensajeFlotante('Se han seleccionado todas las regiones', 'success');
+    } else {
+        // Encontrar y seleccionar el chip correspondiente
+        const regionChip = Array.from(regionChips).find(chip => 
+            chip.textContent.toLowerCase().includes(region) || 
+            chip.getAttribute('onclick').includes(`'${region}'`)
+        );
+        
+        if (regionChip) {
+            regionChip.classList.add('selected');
+        }
+        
+        regionSeleccionada = region;
+        
+        const nombreRegion = regionChip ? regionChip.textContent : region;
+        mostrarMensajeFlotante(`Se ha seleccionado la región: ${nombreRegion}`, 'success');
+    }
+    
+    // Aplicar filtro de técnicos según la región
+    filtrarTecnicosPorRegion(region);
+}
+
+// Función para filtrar técnicos según la región seleccionada
+function filtrarTecnicosPorRegion(region) {
+    // Primero limpiar la selección actual
+    deseleccionarTodosTecnicos();
+    
+    // Si es "todas", no seleccionar ninguna
+    if (region === 'todas') {
+        return;
+    }
+    
+    // Obtener los técnicos de la región seleccionada
+    const tecnicosDeRegion = regionesTecnicos[region] || [];
+    
+    if (tecnicosDeRegion.length === 0) {
+        mostrarMensajeFlotante('No hay técnicos definidos para esta región', 'warning');
+        return;
+    }
+    
+    // Seleccionar los técnicos correspondientes
+    const tecnicoChips = document.querySelectorAll('#tecnicosContainer .chip');
+    let tecnicosEncontrados = 0;
+    
+    tecnicoChips.forEach(chip => {
+        const nombreTecnico = chip.textContent.trim();
+        
+        if (tecnicosDeRegion.includes(nombreTecnico)) {
+            // Seleccionar este técnico
+            toggleSeleccionTecnico(chip, nombreTecnico);
+            tecnicosEncontrados++;
+        }
+    });
+    
+    if (tecnicosEncontrados === 0) {
+        mostrarMensajeFlotante('No se encontraron técnicos de esta región en el sistema', 'warning');
+    } else if (tecnicosEncontrados < tecnicosDeRegion.length) {
+        mostrarMensajeFlotante(`Se encontraron ${tecnicosEncontrados} de ${tecnicosDeRegion.length} técnicos definidos para esta región`, 'info');
+    }
+}
+
+// Función para mostrar un mensaje flotante temporal
+function mostrarMensajeFlotante(mensaje, tipo = 'info') {
+    // Eliminar cualquier mensaje flotante existente
+    const mensajeExistente = document.getElementById('mensaje-flotante');
+    if (mensajeExistente) {
+        mensajeExistente.remove();
+    }
+    
+    // Crear nuevo mensaje
+    const mensajeDiv = document.createElement('div');
+    mensajeDiv.id = 'mensaje-flotante';
+    
+    // Aplicar estilos según el tipo
+    let colorFondo, colorTexto, colorBorde;
+    
+    switch (tipo) {
+        case 'success':
+            colorFondo = '#d1fae5';
+            colorTexto = '#065f46';
+            colorBorde = '#10b981';
+            break;
+        case 'warning':
+            colorFondo = '#fff7ed';
+            colorTexto = '#9a3412';
+            colorBorde = '#f97316';
+            break;
+        case 'error':
+            colorFondo = '#fee2e2';
+            colorTexto = '#b91c1c';
+            colorBorde = '#ef4444';
+            break;
+        case 'info':
+        default:
+            colorFondo = '#eff6ff';
+            colorTexto = '#1e40af';
+            colorBorde = '#3b82f6';
+            break;
+    }
+    
+    // Aplicar estilos
+    mensajeDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background-color: ${colorFondo};
+        color: ${colorTexto};
+        border-left: 4px solid ${colorBorde};
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 9999;
+        font-size: 14px;
+        max-width: 300px;
+        animation: slideInRight 0.3s ease, fadeOut 0.5s ease 2.5s forwards;
+    `;
+    
+    // Agregar el texto
+    mensajeDiv.textContent = mensaje;
+    
+    // Agregar al body
+    document.body.appendChild(mensajeDiv);
+    
+    // Eliminar después de 3 segundos
+    setTimeout(() => {
+        if (mensajeDiv.parentNode) {
+            mensajeDiv.remove();
+        }
+    }, 3000);
+}
+
+// Función unificada para buscar servicios por NV, Requerimiento o Cliente
+function buscarServicio() {
+    const tipoBusqueda = document.getElementById('tipo-busqueda').value;
+    const valorBusqueda = document.getElementById('busqueda-valor').value.trim();
+    
+    if (!valorBusqueda) {
+        alert('Por favor, ingrese un valor para buscar.');
+        return;
+    }
+    
+    // Limpiar cualquier mensaje o panel de resultados previo
+    const mensajePrevio = document.getElementById('mensaje-no-resultados');
+    if (mensajePrevio) mensajePrevio.remove();
+    
+    const panelPrevio = document.getElementById('panel-resultados');
+    if (panelPrevio) panelPrevio.remove();
+    
+    // Limpiar cualquier resaltado anterior
+    limpiarResaltadosBusqueda();
+    
+    // Realizar la búsqueda según el tipo
+    switch (tipoBusqueda) {
+        case 'nv':
+            buscarPorNotaVenta(valorBusqueda);
+            break;
+        case 'req':
+            buscarPorRequerimiento(valorBusqueda);
+            break;
+        case 'cliente':
+            buscarPorCliente(valorBusqueda);
+            break;
+    }
+}
+
+// Función para buscar por Nota de Venta
+function buscarPorNotaVenta(numeroNV) {
+    const resultados = [];
+    
+    // Buscar el número de NV en todos los servicios y traslados
+    [...servicios, ...traslados].forEach(servicio => {
+        if (servicio.notaVenta && servicio.notaVenta.includes(numeroNV)) {
+            resultados.push(servicio);
+        }
+    });
+    
+    mostrarResultadosBusqueda(resultados, 'Nota de Venta', numeroNV);
+}
+
+// Función para buscar por Requerimiento
+function buscarPorRequerimiento(numeroReq) {
+    const resultados = [];
+    
+    // Buscar el número de Requerimiento en todos los servicios y traslados
+    [...servicios, ...traslados].forEach(servicio => {
+        if (servicio.requerimiento && servicio.requerimiento.includes(numeroReq)) {
+            resultados.push(servicio);
+        }
+    });
+    
+    mostrarResultadosBusqueda(resultados, 'Requerimiento', numeroReq);
+}
+
+// Función para buscar por Cliente
+function buscarPorCliente(cliente) {
+    const resultados = [];
+    const clienteLowerCase = cliente.toLowerCase();
+    
+    // Buscar el cliente en todos los servicios y traslados
+    [...servicios, ...traslados].forEach(servicio => {
+        if (servicio.cliente && servicio.cliente.toLowerCase().includes(clienteLowerCase)) {
+            resultados.push(servicio);
+        }
+    });
+    
+    mostrarResultadosBusqueda(resultados, 'Cliente', cliente);
+}
+
+// Función unificada para mostrar resultados de búsqueda
+function mostrarResultadosBusqueda(resultados, tipoBusqueda, valorBusqueda) {
+    if (resultados.length > 0) {
+        // Crear panel de resultados si no existe
+        let panelResultados = document.getElementById('panel-resultados');
+        if (!panelResultados) {
+            panelResultados = document.createElement('div');
+            panelResultados.id = 'panel-resultados';
+            panelResultados.className = 'bg-white rounded-lg shadow-sm p-4 mb-4 max-h-60 overflow-auto';
+            
+            // Insertar después del buscador unificado
+            const buscadorUnificado = document.querySelector('.buscador-unificado');
+            buscadorUnificado.parentNode.insertBefore(panelResultados, buscadorUnificado.nextSibling);
+        }
+        
+        // Generar HTML para los resultados
+        let htmlResultados = `
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-blue-800">Resultados para ${tipoBusqueda}: ${valorBusqueda}</h3>
+                <button onclick="cerrarPanelResultados()" class="text-gray-500 hover:text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
+        `;
+        
+        if (resultados.length === 1) {
+            // Si hay solo un resultado, navegar automáticamente a esa fecha
+            const servicio = resultados[0];
+            const fechaPartes = servicio.fecha.split('/');
+            const fechaServicio = new Date(fechaPartes[2], fechaPartes[1] - 1, fechaPartes[0]);
+            
+            // Cambiar a la fecha del servicio y a vista diaria
+            fechaSeleccionada = fechaServicio;
+            cambiarVista('diaria');
+            actualizarVistaFecha();
+            // Pasar tipoBusqueda y valorBusqueda a navegarAServicio
+            const tipoB = tipoBusqueda === 'Nota de Venta' ? 'nv' : (tipoBusqueda === 'Requerimiento' ? 'req' : 'cliente');
+            navegarAServicio(servicio.fecha, servicio.tecnico, servicio.notaVenta, tipoB, valorBusqueda);
+            
+            htmlResultados += `<p class="text-green-600 font-medium">Se ha encontrado 1 servicio. Navegando automáticamente.</p>`;
+        } else {
+            htmlResultados += `<p class="text-blue-600 font-medium">Se encontraron ${resultados.length} servicios:</p>`;
+        }
+        
+        htmlResultados += `<div class="grid gap-2 mt-2">`;
+        
+        // Agrupar resultados por fecha
+        const resultadosPorFecha = {};
+        resultados.forEach(servicio => {
+            if (!resultadosPorFecha[servicio.fecha]) {
+                resultadosPorFecha[servicio.fecha] = [];
+            }
+            resultadosPorFecha[servicio.fecha].push(servicio);
+        });
+        
+        // Ordenar fechas
+        const fechasOrdenadas = Object.keys(resultadosPorFecha).sort((a, b) => {
+            const fechaA = a.split('/').map(Number);
+            const fechaB = b.split('/').map(Number);
+            // Año, mes, día
+            return new Date(fechaA[2], fechaA[1]-1, fechaA[0]) - new Date(fechaB[2], fechaB[1]-1, fechaB[0]);
+        });
+        
+        // Agregar cada grupo de fecha con sus resultados
+        fechasOrdenadas.forEach(fecha => {
+            const serviciosFecha = resultadosPorFecha[fecha];
+            const fechaPartes = fecha.split('/');
+            const fechaServicio = new Date(fechaPartes[2], fechaPartes[1] - 1, fechaPartes[0]);
+            const fechaFormateada = fechaServicio.toLocaleDateString('es-ES', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // Título de la fecha
+            htmlResultados += `<div class="mt-3 mb-1 font-medium text-gray-600">${fechaFormateada}</div>`;
+            
+            // Servicios de esta fecha
+            serviciosFecha.forEach(servicio => {
+                const tipoB = tipoBusqueda === 'Nota de Venta' ? 'nv' : (tipoBusqueda === 'Requerimiento' ? 'req' : 'cliente');
+                
+                htmlResultados += `
+                    <div class="bg-gray-50 p-3 rounded border border-gray-200">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="font-semibold">${servicio.cliente}</div>
+                                <div class="text-sm text-gray-600">
+                                    <span class="font-medium">Hora:</span> ${servicio.horaInicio}:00 - ${servicio.horaTermino}:00
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    <span class="font-medium">Técnico:</span> ${servicio.tecnico}
+                                </div>
+                                ${servicio.notaVenta ? `<div class="text-sm text-gray-600">
+                                    <span class="font-medium">NV:</span> ${servicio.notaVenta}
+                                </div>` : ''}
+                                ${servicio.requerimiento ? `<div class="text-sm text-gray-600">
+                                    <span class="font-medium">Req:</span> ${servicio.requerimiento}
+                                </div>` : ''}
+                            </div>
+                            <button 
+                                onclick="navegarAServicio('${servicio.fecha}', '${servicio.tecnico}', '${servicio.notaVenta}', '${tipoB}', '${valorBusqueda}')" 
+                                class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                                Ver
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+        
+        htmlResultados += `</div>`;
+        panelResultados.innerHTML = htmlResultados;
+        
+        // Resaltar los servicios en el calendario si estamos en la vista correspondiente
+        if (resultados.length > 1) {
+            // Solo resaltar cuando hay múltiples resultados y no se navega automáticamente
+            setTimeout(() => resaltarServiciosEnCalendario(resultados), 500);
+        }
+    } else {
+        // Mostrar mensaje de no resultados
+        mostrarMensajeNoResultados(tipoBusqueda, valorBusqueda);
+    }
+}
+
+// Función para mostrar mensaje de no resultados
+function mostrarMensajeNoResultados(tipoBusqueda, valor) {
+    let mensajeNoResultados = document.getElementById('mensaje-no-resultados');
+    
+    if (!mensajeNoResultados) {
+        mensajeNoResultados = document.createElement('div');
+        mensajeNoResultados.id = 'mensaje-no-resultados';
+        mensajeNoResultados.className = 'no-resultados';
+        
+        // MODIFICACIÓN: Insertar después del buscador unificado
+        const buscadorUnificado = document.querySelector('.buscador-unificado');
+        buscadorUnificado.parentNode.insertBefore(mensajeNoResultados, buscadorUnificado.nextSibling);
+    }
+    
+    mensajeNoResultados.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+            <p class="font-medium">No se encontraron resultados para ${tipoBusqueda}: ${valor}</p>
+            <p class="text-sm mt-1">Intenta con otro valor o verifica que exista en el sistema.</p>
+        </div>
+    `;
+    
+    // Ocultar automáticamente después de 5 segundos
+    setTimeout(() => {
+        if (mensajeNoResultados && mensajeNoResultados.parentNode) {
+            mensajeNoResultados.remove();
+        }
+    }, 5000);
+}
+
+// Función principal para cargar datos
+async function cargarDatos() {
+    document.getElementById('estado-carga').classList.remove('hidden');
+    document.getElementById('error-mensaje').classList.add('hidden');
+
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${RANGE}?key=${API_KEY}`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
+
+        const data = await response.json();
+        let serviciosTemp = [];
+        let trasladosTemp = [];
+
+        // Procesar cada fila de datos
+        data.values.slice(1).forEach(row => {
+            if (!row[0]) return;
+
+            const tecnicosArray = row[0].split(/[,;]/).map(t => t.trim().replace(/[▼▾]/g, '')).filter(t => t);
+
+            tecnicosArray.forEach(tecnico => {
+                if (tecnico) {
+                    // Datos de servicio - Ahora incluye canal (columna O)
+                    serviciosTemp.push({
+                        tecnico: tecnico,
+                        fecha: (row[1] || '').trim(),
+                        horaInicio: (row[3] || '').trim().split(':')[0],
+                        horaTermino: (row[4] || '').trim().split(':')[0],
+                        requerimiento: (row[5] || '').trim(),
+                        notaVenta: (row[6] || '').trim(),
+                        cliente: (row[7] || '').trim(),
+                        servicio: (row[8] || '').trim(),
+                        valor: (row[9] || '').trim(),
+                        direccion: (row[10] || '').trim(),
+                        observaciones: (row[11] || '').trim(),
+                        estado: (row[12] || '').trim(),
+                        supervisor: (row[13] || '').trim(),
+                        canal: (row[14] || '').trim(), // Añadir el canal (columna O)
+                        esTraslado: false
+                    });
+
+                    // Si hay datos de traslado, crear evento de traslado
+                    const trasladoValor = (row[2] || '').trim();
+                    if (trasladoValor) {
+                        // Extraer solo el número de la hora del traslado
+                        const horaTraslado = parseInt(trasladoValor.split(':')[0]);
+                        const horaInicio = (row[3] || '').trim().split(':')[0];
+                        const horaInicioNum = parseInt(horaInicio);
+                        
+                        if (!isNaN(horaTraslado) && !isNaN(horaInicioNum)) {
+                            // El traslado va desde la hora en la columna C hasta la hora inicio
+                            trasladosTemp.push({
+                                tecnico: tecnico,
+                                fecha: (row[1] || '').trim(),
+                                horaInicio: horaTraslado.toString(), // Usar directamente la hora del traslado
+                                horaTermino: horaInicio, // La hora de término del traslado es la hora de inicio del servicio
+                                requerimiento: (row[5] || '').trim(),
+                                notaVenta: (row[6] || '').trim(),
+                                cliente: (row[7] || '').trim(),
+                                servicio: "TRASLADO",
+                                valor: (row[9] || '').trim(),
+                                direccion: (row[10] || '').trim(),
+                                observaciones: "Traslado previo al servicio",
+                                estado: "traslado",
+                                supervisor: (row[13] || '').trim(),
+                                canal: (row[14] || '').trim(), // Añadir el canal (columna O)
+                                esTraslado: true,
+                                duracionTraslado: (horaInicioNum - horaTraslado).toString()
+                            });
+                        }
+                    }
+                }
+            });
+        });
+
+        // Filtrar servicios válidos
+        servicios = serviciosTemp.filter(s => 
+            s.tecnico && s.fecha && s.horaInicio && s.horaTermino
+        );
+
+        // Filtrar traslados válidos
+        traslados = trasladosTemp.filter(t => 
+            t.tecnico && t.fecha && t.horaInicio && t.horaTermino
+        );
+
+        // Actualizar datos relacionados
+        fechasConServicios = new Set([...servicios, ...traslados].map(s => s.fecha));
+        tecnicos = [...new Set([...servicios, ...traslados].map(s => s.tecnico))].sort();
+
+        // Inicializar los filtros mejorados
+        inicializarChipsTecnicos();
+        inicializarChipsSupervisores();
+        
+        actualizarVistaFecha();
+        actualizarCalendario();
+        actualizarHoraActualizacion();
+
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('error-mensaje').innerHTML = `
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded-lg">
+                <h3 class="font-bold">Error al cargar los datos</h3>
+                <p>${error.message}</p>
+            </div>
+        `;
+        document.getElementById('error-mensaje').classList.remove('hidden');
+    } finally {
+        document.getElementById('estado-carga').classList.add('hidden');
+    }
+}
+
+// FUNCIONES PARA LOS FILTROS MEJORADOS
+
+// Inicializar chips de técnicos
+function inicializarChipsTecnicos() {
+    const contenedor = document.getElementById('tecnicosContainer');
+    contenedor.innerHTML = '';
+    
+    // Resetear la selección
+    tecnicosSeleccionados = [];
+    
+    tecnicos.forEach(tecnico => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.textContent = tecnico;
+        chip.onclick = function() {
+            toggleSeleccionTecnico(this, tecnico);
+        };
+        
+        contenedor.appendChild(chip);
+    });
+    
+    actualizarContadorTecnicos();
+}
+
+// Inicializar chips de supervisores
+function inicializarChipsSupervisores() {
+    const contenedor = document.getElementById('supervisoresContainer');
+    contenedor.innerHTML = '';
+    
+    // Resetear la selección
+    supervisoresSeleccionados = [];
+    
+    // Obtener lista única de supervisores
+    const supervisores = [...new Set([...servicios, ...traslados]
+        .map(s => s.supervisor)
+        .filter(s => s && s.trim() !== ''))] // Filtrar valores vacíos
+        .sort();
+    
+    supervisores.forEach(supervisor => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        
+        const colorSpan = document.createElement('span');
+        colorSpan.className = 'chip-icon';
+        colorSpan.style.backgroundColor = obtenerColorSupervisor(supervisor);
+        
+        chip.appendChild(colorSpan);
+        chip.appendChild(document.createTextNode(supervisor));
+        
+        chip.onclick = function() {
+            toggleSeleccionSupervisor(this, supervisor);
+        };
+        
+        contenedor.appendChild(chip);
+    });
+    
+    actualizarContadorSupervisores();
+}
+
+// Alternar selección de técnico
+function toggleSeleccionTecnico(elemento, tecnico) {
+    elemento.classList.toggle('selected');
+    
+    if (elemento.classList.contains('selected')) {
+        if (!tecnicosSeleccionados.includes(tecnico)) {
+            tecnicosSeleccionados.push(tecnico);
+        }
+    } else {
+        tecnicosSeleccionados = tecnicosSeleccionados.filter(t => t !== tecnico);
+    }
+    
+    actualizarContadorTecnicos();
+}
+
+// Seleccionar todos los técnicos visibles
+function seleccionarTodosTecnicos() {
+    const chips = document.querySelectorAll('#tecnicosContainer .chip');
+    tecnicosSeleccionados = [];
+    
+    chips.forEach(chip => {
+        if (chip.style.display !== 'none') { // Solo los visibles
+            chip.classList.add('selected');
+            const tecnico = chip.textContent.trim();
+            if (!tecnicosSeleccionados.includes(tecnico)) {
+                tecnicosSeleccionados.push(tecnico);
+            }
+        }
+    });
+    
+    actualizarContadorTecnicos();
+}
+
+// Deseleccionar todos los técnicos
+function deseleccionarTodosTecnicos() {
+    const chips = document.querySelectorAll('#tecnicosContainer .chip');
+    chips.forEach(chip => {
+        chip.classList.remove('selected');
+    });
+    
+    tecnicosSeleccionados = [];
+    actualizarContadorTecnicos();
+}
+
+// Actualizar contador de técnicos seleccionados
+function actualizarContadorTecnicos() {
+    document.getElementById('contadorTecnicos').textContent = `(${tecnicosSeleccionados.length} seleccionados)`;
+}
+
+// Filtrar técnicos por búsqueda
+function filtrarTecnicos() {
+    const texto = document.getElementById('buscarTecnico').value.toLowerCase();
+    const chips = document.querySelectorAll('#tecnicosContainer .chip');
+    
+    chips.forEach(chip => {
+        const tecnico = chip.textContent.toLowerCase();
+        if (tecnico.includes(texto)) {
+            chip.style.display = 'flex';
+        } else {
+            chip.style.display = 'none';
+        }
+    });
+}
+
+// Alternar selección de supervisor
+function toggleSeleccionSupervisor(elemento, supervisor) {
+    elemento.classList.toggle('selected');
+    
+    if (elemento.classList.contains('selected')) {
+        if (!supervisoresSeleccionados.includes(supervisor)) {
+            supervisoresSeleccionados.push(supervisor);
+        }
+    } else {
+        supervisoresSeleccionados = supervisoresSeleccionados.filter(s => s !== supervisor);
+    }
+    
+    actualizarContadorSupervisores();
+}
+
+// Seleccionar todos los supervisores
+function seleccionarTodosSupervisores() {
+    const chips = document.querySelectorAll('#supervisoresContainer .chip');
+    supervisoresSeleccionados = [];
+    
+    chips.forEach(chip => {
+        chip.classList.add('selected');
+        // Extraer el texto del supervisor (ignorando el color span)
+        const supervisor = chip.textContent.trim();
+        if (!supervisoresSeleccionados.includes(supervisor)) {
+            supervisoresSeleccionados.push(supervisor);
+        }
+    });
+    
+    actualizarContadorSupervisores();
+}
+
+// Deseleccionar todos los supervisores
+function deseleccionarTodosSupervisores() {
+    const chips = document.querySelectorAll('#supervisoresContainer .chip');
+    chips.forEach(chip => {
+        chip.classList.remove('selected');
+    });
+    
+    supervisoresSeleccionados = [];
+    actualizarContadorSupervisores();
+}
+
+// Actualizar contador de supervisores seleccionados
+function actualizarContadorSupervisores() {
+    document.getElementById('contadorSupervisores').textContent = `(${supervisoresSeleccionados.length} seleccionados)`;
+}
+
+// Aplicar filtros mejorados
+function aplicarFiltros() {
+    // Importante: asegurarse de que estamos obteniendo la selección actual si no se pasa directamente
+    if (!tecnicosSeleccionados.length && filtros.tecnico && filtros.tecnico.length) {
+        // Si no hay técnicos seleccionados en la UI pero los filtros tienen técnicos especificados,
+        // usar los técnicos de los filtros
+        console.log("Usando técnicos de filtros:", filtros.tecnico);
+    } else {
+        // Si hay técnicos seleccionados en la UI, usarlos
+        filtros.tecnico = tecnicosSeleccionados.length > 0 ? tecnicosSeleccionados : '';
+    }
+    
+    // El resto permanece igual
+    filtros.supervisor = supervisoresSeleccionados.length > 0 ? supervisoresSeleccionados : '';
+    filtros.region = regionSeleccionada;
+    
+    console.log("Aplicando filtros:", filtros);
+    
+    actualizarCalendario();
+    
+    // Colapsar los filtros después de aplicarlos
+    const filtrosContainer = document.getElementById('filtrosContainer');
+    if (filtrosContainer.classList.contains('expanded')) {
+        document.getElementById('toggleFiltros').click();
+    }
+}
+
+// Limpiar filtros mejorados
+function limpiarFiltros() {
+    // Limpiar técnicos
+    deseleccionarTodosTecnicos();
+    document.getElementById('buscarTecnico').value = '';
+    const tecnicoChips = document.querySelectorAll('#tecnicosContainer .chip');
+    tecnicoChips.forEach(chip => {
+        chip.style.display = 'flex';
+    });
+    
+    // Limpiar supervisores
+    deseleccionarTodosSupervisores();
+    
+    // Limpiar la selección de región
+    regionSeleccionada = '';
+    const regionChips = document.querySelectorAll('#regionesContainer .chip');
+    regionChips.forEach(chip => {
+        chip.classList.remove('selected');
+    });
+    
+    // Resetear el filtro por estado
+    filtros.estado = '';
+    actualizarBotonesEstado('filtro-todos');
+    
+    filtros = {
+        tecnico: '',
+        cliente: '',
+        requerimiento: '',
+        notaVenta: '',
+        estado: '',
+        supervisor: '',
+        region: ''
+    };
+    
+    actualizarCalendario();
+}
+
+// 3. Función para navegar a un servicio específico
+function navegarAServicio(fechaStr, tecnico, notaVenta, tipoBusqueda = 'nv', valorBusqueda = '') {
+    console.log("Navegando a servicio con:", { fechaStr, tecnico, notaVenta, tipoBusqueda, valorBusqueda });
+    
+    // Convertir formato de fecha DD/MM/YYYY a objeto Date
+    const fechaPartes = fechaStr.split('/');
+    const fecha = new Date(fechaPartes[2], fechaPartes[1] - 1, fechaPartes[0]);
+    
+    // Actualizar fecha seleccionada
+    fechaSeleccionada = fecha;
+    
+    // Cambiar a vista diaria
+    cambiarVista('diaria');
+    
+    // Actualizar la vista de fecha
+    actualizarVistaFecha();
+    
+    // Limpiar filtros previos primero
+    limpiarFiltros();
+    
+    // Determinar qué técnicos deben mostrarse según el tipo de búsqueda
+    let tecnicosAMostrar = [];
+    let criterioTexto = '';
+    
+    if (tipoBusqueda === 'nv') {
+        // Buscar todos los técnicos con esta nota de venta
+        tecnicosAMostrar = [...servicios, ...traslados]
+            .filter(s => s.notaVenta === notaVenta)
+            .map(s => s.tecnico);
+        criterioTexto = `NV: ${notaVenta}`;
+    } 
+    else if (tipoBusqueda === 'req') {
+        // Buscar todos los técnicos con este requerimiento
+        tecnicosAMostrar = [...servicios, ...traslados]
+            .filter(s => s.requerimiento === valorBusqueda)
+            .map(s => s.tecnico);
+        criterioTexto = `Requerimiento: ${valorBusqueda}`;
+    } 
+    else if (tipoBusqueda === 'cliente') {
+        // Buscar todos los técnicos asignados a este cliente
+        tecnicosAMostrar = [...servicios, ...traslados]
+            .filter(s => s.cliente.toLowerCase().includes(valorBusqueda.toLowerCase()))
+            .map(s => s.tecnico);
+        criterioTexto = `Cliente: ${valorBusqueda}`;
+    }
+    
+    // Eliminar duplicados
+    tecnicosAMostrar = [...new Set(tecnicosAMostrar)];
+    
+    // Si no hay técnicos que mostrar, al menos mostrar el técnico actual
+    if (tecnicosAMostrar.length === 0) {
+        tecnicosAMostrar = [tecnico];
+    }
+    
+    console.log("Técnicos a mostrar:", tecnicosAMostrar);
+    
+    // Deseleccionar todos los técnicos primero
+    deseleccionarTodosTecnicos();
+    
+    // Seleccionar solo los técnicos correspondientes
+    const tecnicoChips = document.querySelectorAll('#tecnicosContainer .chip');
+    let contadorSeleccionados = 0;
+    
+    tecnicoChips.forEach(chip => {
+        const nombreTecnico = chip.textContent.trim();
+        if (tecnicosAMostrar.includes(nombreTecnico)) {
+            toggleSeleccionTecnico(chip, nombreTecnico);
+            contadorSeleccionados++;
+        }
+    });
+    
+    console.log(`Seleccionados ${contadorSeleccionados} técnicos de ${tecnicosAMostrar.length}`);
+    
+    // Actualizar filtros con los datos de búsqueda - importante modificar para usar el array de técnicos
+    filtros = {
+        tecnico: tecnicosAMostrar, // Asegúrate de que sea un array
+        cliente: tipoBusqueda === 'cliente' ? valorBusqueda : '',
+        requerimiento: tipoBusqueda === 'req' ? valorBusqueda : '',
+        notaVenta: tipoBusqueda === 'nv' ? notaVenta : '',
+        estado: '',
+        supervisor: ''
+    };
+    
+    console.log("Filtros aplicados:", filtros);
+    
+    // Aplicar los filtros - IMPORTANTE: Llamar a esta función explícitamente
+    aplicarFiltros();
+    
+    // ELIMINAMOS actualizarCalendario() directo, ya que aplicarFiltros() ya lo llama
+    
+    // Importante: tenemos que esperar a que el calendario se actualice
+    setTimeout(() => {
+        // Buscar y resaltar servicios según tipo de búsqueda
+        let serviciosAResaltar = [];
+        
+        if (tipoBusqueda === 'nv') {
+            serviciosAResaltar = buscarPorNotaVenta(notaVenta);
+        } else if (tipoBusqueda === 'req') {
+            serviciosAResaltar = [...servicios, ...traslados].filter(s => 
+                s.requerimiento === valorBusqueda
+            );
+        } else if (tipoBusqueda === 'cliente') {
+            serviciosAResaltar = [...servicios, ...traslados].filter(s => 
+                s.cliente.toLowerCase().includes(valorBusqueda.toLowerCase())
+            );
+        }
+        
+        resaltarServiciosEnCalendario(serviciosAResaltar);
+        
+        // Hacer scroll al servicio resaltado
+        const elementoResaltado = document.querySelector('.servicio-celda.resaltado-busqueda');
+        if (elementoResaltado) {
+            elementoResaltado.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // Mostrar mensaje de confirmación
+        mostrarMensajeFlotante(`Mostrando servicios para ${criterioTexto} (${tecnicosAMostrar.length} técnicos)`, 'success');
+    }, 500);
+}
+
+// 4. Función para resaltar servicios en el calendario
+function resaltarServiciosEnCalendario(servicios) {
+    // Primero limpiar cualquier resaltado previo
+    limpiarResaltadosBusqueda();
+    
+    // Encontrar todos los elementos de servicios en el calendario
+    const celdaServicios = document.querySelectorAll('.servicio-celda');
+    
+    celdaServicios.forEach(celda => {
+        // Intentar extraer información del servicio desde el evento onclick
+        const onclickAttr = celda.getAttribute('onclick');
+        if (onclickAttr && onclickAttr.includes('mostrarModal')) {
+            // Extraer datos del servicio del evento onclick
+            try {
+                // Extraer el JSON del servicio
+                const servicioStr = onclickAttr.substring(
+                    onclickAttr.indexOf('(') + 1, 
+                    onclickAttr.lastIndexOf(')')
+                );
+                
+                // Reemplazar las entidades HTML
+                const servicioJson = servicioStr
+                    .replace(/&quot;/g, '"')
+                    .replace(/&#39;/g, "'");
+                
+                // Parsear el JSON del servicio
+                const servicioData = JSON.parse(servicioJson);
+                
+                // Verificar si este servicio coincide con alguno de los que debemos resaltar
+                const coincide = servicios.some(s => 
+                    s.tecnico === servicioData.tecnico &&
+                    s.fecha === servicioData.fecha &&
+                    s.horaInicio === servicioData.horaInicio &&
+                    s.notaVenta === servicioData.notaVenta
+                );
+                
+                if (coincide) {
+                    // Agregar clase de resaltado
+                    celda.classList.add('resaltado-busqueda', 'parpadeo');
+                }
+            } catch (error) {
+                console.error('Error al extraer datos del servicio:', error);
+            }
+        }
+    });
+}
+
+// 5. Función para limpiar resaltados de búsqueda anteriores
+function limpiarResaltadosBusqueda() {
+    document.querySelectorAll('.resaltado-busqueda').forEach(elemento => {
+        elemento.classList.remove('resaltado-busqueda', 'parpadeo');
+    });
+}
+
+// 6. Función para cerrar el panel de resultados
+function cerrarPanelResultados() {
+    const panelResultados = document.getElementById('panel-resultados');
+    if (panelResultados) {
+        panelResultados.remove();
+    }
+    limpiarResaltadosBusqueda();
+}
+
+// Funciones de formateo de fechas
+function formatearFecha(fecha, formato = 'largo') {
+    if (formato === 'corto') {
+        const dia = fecha.getDate();
+        const mes = fecha.getMonth() + 1;
+        const año = fecha.getFullYear();
+        // Formato exacto como tu ejemplo: 5/03/2025
+        return `${dia}/${mes.toString().padStart(2, '0')}/${año}`;
+    }
+
+    const opciones = {
+        largo: {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        }
+    };
+    
+    return fecha.toLocaleDateString('es-ES', opciones[formato]);
+}
+
+// Función para obtener fechas de la semana
+function obtenerFechasSemana() {
+    const fechas = [];
+    const primerDiaSemana = new Date(fechaSeleccionada);
+    primerDiaSemana.setDate(fechaSeleccionada.getDate() - fechaSeleccionada.getDay());
+
+    for (let i = 0; i < 7; i++) {
+        const fecha = new Date(primerDiaSemana);
+        fecha.setDate(primerDiaSemana.getDate() + i);
+        fechas.push(fecha);
+    }
+    return fechas;
+}
+
+// Función para obtener días del mes actual
+function obtenerDiasMes() {
+    const año = fechaSeleccionada.getFullYear();
+    const mes = fechaSeleccionada.getMonth();
+    
+    // Primer día del mes
+    const primerDia = new Date(año, mes, 1);
+    // Último día del mes
+    const ultimoDia = new Date(año, mes + 1, 0);
+    
+    // Días del mes anterior para completar la primera semana
+    const diasAnteriores = [];
+    const diaSemana = primerDia.getDay(); // 0-6 (domingo-sábado)
+    
+    if (diaSemana > 0) {
+        const ultimoDiaMesAnterior = new Date(año, mes, 0).getDate();
+        for (let i = ultimoDiaMesAnterior - diaSemana + 1; i <= ultimoDiaMesAnterior; i++) {
+            diasAnteriores.push({
+                fecha: new Date(año, mes - 1, i),
+                dia: i,
+                esMesActual: false
+            });
+        }
+    }
+    
+    // Días del mes actual
+    const diasActuales = [];
+    for (let i = 1; i <= ultimoDia.getDate(); i++) {
+        diasActuales.push({
+            fecha: new Date(año, mes, i),
+            dia: i,
+            esMesActual: true
+        });
+    }
+    
+    // Días del mes siguiente para completar la última semana
+    const diasSiguientes = [];
+    const diasNecesarios = 42 - (diasAnteriores.length + diasActuales.length); // 6 semanas * 7 días = 42
+    
+    for (let i = 1; i <= diasNecesarios; i++) {
+        diasSiguientes.push({
+            fecha: new Date(año, mes + 1, i),
+            dia: i,
+            esMesActual: false
+        });
+    }
+    
+    return [...diasAnteriores, ...diasActuales, ...diasSiguientes];
+}
+
+// Función auxiliar para determinar superposición de servicios
+function seSuperponen(servicio1, servicio2) {
+    return !(servicio1.horaTerminoNum <= servicio2.horaInicioNum || 
+             servicio2.horaTerminoNum <= servicio1.horaInicioNum);
+}
+
+// Función para calcular posiciones de servicios superpuestos
+function calcularPosicionesServicios(servicios) {
+    if (!servicios.length) return [];
+
+    servicios.sort((a, b) => {
+        if (a.horaInicioNum === b.horaInicioNum) {
+            return (b.horaTerminoNum - b.horaInicioNum) - (a.horaTerminoNum - a.horaInicioNum);
+        }
+        return a.horaInicioNum - b.horaInicioNum;
+    });
+
+    let tracks = [];
+    
+    servicios.forEach(servicio => {
+        let trackIndex = tracks.findIndex(track => {
+            return !track.some(s => seSuperponen(s, servicio));
+        });
+        
+        if (trackIndex === -1) {
+            trackIndex = tracks.length;
+            tracks[trackIndex] = [];
+        }
+        
+        tracks[trackIndex].push(servicio);
+        servicio.track = trackIndex;
+    });
+
+    const numTracks = tracks.length;
+    
+    servicios.forEach(servicio => {
+        servicio.width = `${100 / numTracks}%`;
+        servicio.left = `${(servicio.track * 100) / numTracks}%`;
+    });
+
+    return servicios;
+}
+
+// Función para determinar nivel de ocupación
+function obtenerNivelOcupacion(cantidadServicios) {
+    if (cantidadServicios <= 2) return 'baja';
+    if (cantidadServicios <= 5) return 'media';
+    return 'alta';
+}
+
+// Función para filtrar servicios por estado
+function filtrarServiciosPorEstado(servicios) {
+    if (!filtros.estado) return servicios;
+    
+    return servicios.filter(servicio => {
+        const estadoNormalizado = (servicio.estado || '').toLowerCase().trim();
+        
+        switch(filtros.estado) {
+            case 'programado':
+                return estadoNormalizado === 'programado' || estadoNormalizado.includes('program');
+            case 'reservado':
+                return estadoNormalizado === 'reservado' || estadoNormalizado.includes('reserv');
+            case 'cerrado':
+                return estadoNormalizado === 'cerrado' || estadoNormalizado.includes('cerr');
+            case 'traslado':
+                return servicio.esTraslado || estadoNormalizado === 'traslado' || estadoNormalizado.includes('trasl');
+            default:
+                return true;
+        }
+    });
+}
+// Función para actualizar el calendario diario con soporte para zoom
+function actualizarCalendarioDiario() {
+    const calendario = document.getElementById('calendario');
+    const horaActual = new Date().getHours();
+    const minutoActual = new Date().getMinutes();
+    const esHoy = fechaSeleccionada.toDateString() === new Date().toDateString();
+    const fechaStr = formatearFecha(fechaSeleccionada, 'corto');
+    
+    // Determinar el intervalo de tiempo según el nivel de zoom
+    const intervaloMinutos = zoomLevel; // 30, 60 o 120 minutos
+    const intervaloHoras = intervaloMinutos / 60;
+    
+    // Calcular horas de inicio y fin según el zoom
+    const horaInicio = 6; // 6 AM
+    const horaFin = 24; // Hasta medianoche
+    
+    let html = '<table class="calendario-grid">';
+    
+    // Cabecera
+    html += '<tr class="border-b">';
+    html += '<th class="hora-celda">Hora</th>';
+    
+    // Filtrar los técnicos según la selección
+    const tecnicosFiltrados = tecnicos.filter(tecnico => {
+        if (!filtros.tecnico || filtros.tecnico === '') return true;
+        return filtros.tecnico.includes(tecnico);
+    });
+    
+    tecnicosFiltrados.forEach(tecnico => {
+        html += `<th class="tecnico-header">${tecnico}</th>`;
+    });
+    
+    html += '</tr>';
+
+    // Preparar servicios y traslados por técnico
+    const serviciosPorTecnico = {};
+    tecnicosFiltrados.forEach(tecnico => {
+        // Filtrar por técnico, fecha y otros criterios
+        let serviciosFiltrados = [...servicios, ...traslados].filter(s => 
+            s.tecnico === tecnico && 
+            s.fecha === fechaStr &&
+            (!filtros.cliente || s.cliente.toLowerCase().includes(filtros.cliente.toLowerCase())) &&
+            (!filtros.requerimiento || s.requerimiento.includes(filtros.requerimiento)) &&
+            (!filtros.notaVenta || s.notaVenta.includes(filtros.notaVenta)) &&
+            (!filtros.supervisor || filtros.supervisor === '' || filtros.supervisor.includes(s.supervisor))
+        );
+        
+        // Aplicar filtro por estado
+        serviciosFiltrados = filtrarServiciosPorEstado(serviciosFiltrados);
+        
+        serviciosFiltrados = serviciosFiltrados.map(servicio => ({
+            ...servicio,
+            horaInicioNum: parseInt(servicio.horaInicio),
+            horaTerminoNum: parseInt(servicio.horaTermino),
+            duracion: parseInt(servicio.horaTermino) - parseInt(servicio.horaInicio)
+        }));
+        
+        serviciosPorTecnico[tecnico] = calcularPosicionesServicios(serviciosFiltrados);
+    });
+
+    // Generar estructura de horas según el nivel de zoom
+    for (let hora = horaInicio; hora < horaFin; hora += intervaloHoras) {
+        const horaEntera = Math.floor(hora);
+        const minutos = Math.round((hora - horaEntera) * 60);
+        
+        const horaStr = `${horaEntera.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+        const esHoraActual = esHoy && horaEntera === horaActual && 
+                             (minutos === 0 || (minutoActual >= minutos && minutoActual < minutos + intervaloMinutos));
+        
+        html += '<tr>';
+        html += `<td class="hora-celda ${esHoraActual ? 'hora-actual' : ''}">${horaStr}</td>`;
+        
+        tecnicosFiltrados.forEach(tecnico => {
+            html += `<td class="${esHoraActual ? 'hora-actual' : ''}" style="position: relative;"></td>`;
+        });
+        
+        html += '</tr>';
+    }
+    
+    html += '</table>';
+    calendario.innerHTML = html;
+
+    // Agregar servicios como bloques absolutos
+    const tabla = calendario.querySelector('table');
+    const celdaBase = tabla.querySelector('td:not(.hora-celda)');
+    if (!celdaBase) return;
+
+    const alturaHora = celdaBase.offsetHeight;
+    let columnaIndex = 1; // Empezamos desde 1 porque la columna 0 es la de horas
+
+    tecnicosFiltrados.forEach(tecnico => {
+        const serviciosDelTecnico = serviciosPorTecnico[tecnico];
+        if (!serviciosDelTecnico) return;
+
+        serviciosDelTecnico.forEach(servicio => {
+            // Calcular posición según el zoom
+            const horasDesdeInicio = (servicio.horaInicioNum - horaInicio) / intervaloHoras;
+            const duracionZoom = servicio.duracion / intervaloHoras;
+            
+            const topPosition = horasDesdeInicio * alturaHora;
+            const altura = duracionZoom * alturaHora - 2; // -2 para el margen
+            
+            const servicioDiv = document.createElement('div');
+            servicioDiv.className = `servicio-celda ${obtenerClaseEstado(servicio.estado)}`;
+            servicioDiv.style.cssText = `
+                position: absolute;
+                top: ${topPosition}px;
+                left: ${servicio.left};
+                width: ${servicio.width};
+                height: ${altura}px;
+                z-index: 10;
+                border-right: 4px solid ${obtenerColorSupervisor(servicio.supervisor)};
+            `;
+
+            servicioDiv.onclick = () => mostrarModal(servicio);
+
+            // Contenido diferente según si es traslado o servicio regular
+            servicioDiv.innerHTML = servicio.esTraslado 
+                ? `
+                    <div class="servicio-contenido">
+                        <div class="font-medium text-sm truncate text-center">TRASLADO</div>
+                    </div>
+                  `
+                : `
+                    <div class="servicio-contenido">
+                        <div class="font-medium text-sm truncate">${servicio.cliente}</div>
+                        <div class="text-xs text-gray-500">
+                            ${servicio.horaInicio}:00 - ${servicio.horaTermino}:00
+                        </div>
+                        <div class="text-xs text-gray-600 truncate">${servicio.servicio}</div>
+                        <div class="text-xs text-gray-700 truncate">${servicio.canal || ''}</div>
+                        <div class="text-xs text-gray-500 truncate">${servicio.direccion}</div>
+                    </div>
+                  `;
+
+            const columna = tabla.rows[1].cells[columnaIndex];
+            columna.style.position = 'relative';
+            columna.appendChild(servicioDiv);
+        });
+
+        columnaIndex++;
+    });
+}
+
+// Función para actualizar el calendario semanal
+function actualizarCalendarioSemanal() {
+    const calendario = document.getElementById('calendario');
+    const horaActual = new Date().getHours();
+    const fechaHoy = new Date().toDateString();
+    
+    let html = '<table class="calendario-grid-semanal">';
+    
+    // Cabecera
+    html += '<tr>';
+    html += '<th class="hora-celda"></th>';
+    const fechasSemana = obtenerFechasSemana();
+    fechasSemana.forEach(fecha => {
+        const diaSemana = fecha.toLocaleDateString('es-ES', { weekday: 'short' });
+        const diaNum = fecha.getDate();
+        const mes = fecha.toLocaleDateString('es-ES', { month: 'short' });
+        const esHoy = fecha.toDateString() === fechaHoy;
+        html += `
+            <th class="dia-header ${esHoy ? 'bg-green-700' : ''}">
+                ${diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1)}<br>
+                ${diaNum} ${mes}
+            </th>
+        `;
+    });
+    html += '</tr>';
+
+    // Filtrar técnicos según el filtro actual
+    const tecnicosFiltrados = tecnicos.filter(tecnico => 
+        !filtros.tecnico || filtros.tecnico === '' || filtros.tecnico.includes(tecnico)
+    );
+
+    // Crear filas para cada técnico
+    tecnicosFiltrados.forEach(tecnico => {
+        html += '<tr>';
+        html += `<td class="tecnico-header" style="position: sticky; left: 0; z-index: 10">${tecnico}</td>`;
+        
+        // Crear celdas para cada día de la semana
+        fechasSemana.forEach(fecha => {
+            const fechaStr = formatearFecha(fecha, 'corto');
+            const esHoy = fecha.toDateString() === fechaHoy;
+            
+            // Filtrar servicios con los criterios existentes
+            let serviciosDelDia = servicios.filter(s => 
+                s.tecnico === tecnico && 
+                s.fecha === fechaStr &&
+                (!filtros.cliente || s.cliente.toLowerCase().includes(filtros.cliente.toLowerCase())) &&
+                (!filtros.requerimiento || s.requerimiento.includes(filtros.requerimiento)) &&
+                (!filtros.notaVenta || s.notaVenta.includes(filtros.notaVenta)) &&
+                (!filtros.supervisor || filtros.supervisor === '' || filtros.supervisor.includes(s.supervisor))
+            );
+            
+            // Aplicar filtro por estado
+            serviciosDelDia = filtrarServiciosPorEstado(serviciosDelDia);
+
+            html += `<td class="${esHoy ? 'bg-blue-50' : ''}" style="min-height: 100px; vertical-align: top;">`;
+            
+            if (serviciosDelDia.length > 0) {
+                html += '<div class="servicios-multiples">';
+                serviciosDelDia
+                    .sort((a, b) => parseInt(a.horaInicio) - parseInt(b.horaInicio))
+                    .forEach(servicio => {
+                        const estadoClase = obtenerClaseEstado(servicio.estado);
+                        html += `
+                            <div class="servicio-celda ${estadoClase}" 
+                                style="border-right: 4px solid ${obtenerColorSupervisor(servicio.supervisor)};"
+                                onclick='mostrarModal(${JSON.stringify(servicio).replace(/'/g, "&#39;").replace(/"/g, "&quot;")})'>
+                                <div class="servicio-contenido">
+                                    <div class="text-xs font-semibold text-gray-500">${servicio.horaInicio}:00 - ${servicio.horaTermino}:00</div>
+                                    <div class="font-medium truncate">${servicio.cliente}</div>
+                                    <div class="text-xs text-gray-600 truncate">${servicio.servicio}</div>
+                                    <div class="text-xs text-gray-700 truncate">${servicio.canal || ''}</div>
+                                    <div class="text-xs text-gray-500 truncate">${servicio.direccion}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                html += '</div>';
+            }
+            
+            html += '</td>';
+        });
+        
+        html += '</tr>';
+    });
+    
+    html += '</table>';
+    calendario.innerHTML = html;
+}
+// Función para generar el calendario mensual
+function actualizarCalendarioMensual() {
+    const calendario = document.getElementById('calendario');
+    const fechaHoy = new Date().toDateString();
+    const diasDelMes = obtenerDiasMes();
+    
+    let html = '<table class="calendario-mensual">';
+    
+    // Cabecera con nombres de días
+    html += '<tr>';
+    const nombresDias = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    nombresDias.forEach(dia => {
+        html += `<th>${dia}</th>`;
+    });
+    html += '</tr>';
+    
+    // Generar semanas
+    for (let i = 0; i < 6; i++) {
+        html += '<tr>';
+        
+        for (let j = 0; j < 7; j++) {
+            const diaInfo = diasDelMes[i * 7 + j];
+            const fecha = diaInfo.fecha;
+            const fechaStr = formatearFecha(fecha, 'corto');
+            const esHoy = fecha.toDateString() === fechaHoy;
+            
+            // Filtrar servicios para este día
+            const serviciosDelDia = filtrarServiciosPorEstado([...servicios, ...traslados]).filter(s => 
+                s.fecha === fechaStr &&
+                (!filtros.tecnico || filtros.tecnico === '' || filtros.tecnico.includes(s.tecnico)) &&
+                (!filtros.cliente || s.cliente.toLowerCase().includes(filtros.cliente.toLowerCase())) &&
+                (!filtros.requerimiento || s.requerimiento.includes(filtros.requerimiento)) &&
+                (!filtros.notaVenta || s.notaVenta.includes(filtros.notaVenta)) &&
+                (!filtros.supervisor || filtros.supervisor === '' || filtros.supervisor.includes(s.supervisor))
+            );
+            
+            const cantidadServicios = serviciosDelDia.length;
+            const nivelOcupacion = obtenerNivelOcupacion(cantidadServicios);
+            const tieneServicios = cantidadServicios > 0;
+            
+            // Construir la celda
+            html += `<td class="${!diaInfo.esMesActual ? 'fuera-mes' : ''} ${esHoy ? 'hoy' : ''} ${tieneServicios ? 'dia-con-servicios' : ''}" 
+                        onclick="seleccionarFechaMensual('${fecha.toISOString()}')">`;
+            
+            // Número del día
+            html += `<div class="dia-numero">${diaInfo.dia}</div>`;
+            
+            // Mini resumen de servicios
+            if (tieneServicios) {
+                html += `<div class="servicios-dia">`;
+                // Mostrar hasta 3 servicios
+                serviciosDelDia.slice(0, 3).forEach(servicio => {
+                    const estadoClase = obtenerClaseEstado(servicio.estado);
+                    html += `
+                        <div class="servicio-mini ${estadoClase}" 
+                            style="border-right: 4px solid ${obtenerColorSupervisor(servicio.supervisor)};"
+                            onclick="event.stopPropagation(); mostrarModal(${JSON.stringify(servicio).replace(/'/g, "&#39;").replace(/"/g, "&quot;")})">
+                            ${servicio.horaInicio}:00 - ${servicio.cliente.substring(0, 15)}${servicio.cliente.length > 15 ? '...' : ''}
+                        </div>
+                    `;
+                });
+                
+                // Si hay más servicios, mostrar un indicador
+                if (cantidadServicios > 3) {
+                    html += `<div class="text-xs text-center text-gray-500">+ ${cantidadServicios - 3} más</div>`;
+                }
+                
+                html += `</div>`;
+                
+                // Indicador de cantidad y nivel de ocupación
+                html += `
+                    <div class="indicador-cantidad">
+                        <span class="indicador-ocupacion ocupacion-${nivelOcupacion}"></span>${cantidadServicios}
+                    </div>
+                `;
+            }
+            
+            html += '</td>';
+        }
+        
+        html += '</tr>';
+    }
+    
+    html += '</table>';
+    calendario.innerHTML = html;
+}
+
+// Función para actualizar el calendario según la vista actual
+function actualizarCalendario() {
+    if (vistaActual === 'diaria') {
+        actualizarCalendarioDiario();
+    } else if (vistaActual === 'semanal') {
+        actualizarCalendarioSemanal();
+    } else if (vistaActual === 'mensual') {
+        actualizarCalendarioMensual();
+    }
+}
+// Función para cambiar entre vistas
+function cambiarVista(vista) {
+    vistaActual = vista;
+    
+    document.getElementById('btn-diaria').classList.toggle('activo', vista === 'diaria');
+    document.getElementById('btn-semanal').classList.toggle('activo', vista === 'semanal');
+    document.getElementById('btn-mensual').classList.toggle('activo', vista === 'mensual');
+    
+    // Mostrar/ocultar controles de zoom
+    document.getElementById('zoom-controls').classList.toggle('hidden', vista !== 'diaria');
+    
+    if (vista === 'mensual') {
+        document.getElementById('btn-anterior').textContent = '← Mes Anterior';
+        document.getElementById('btn-siguiente').textContent = 'Mes Siguiente →';
+    } else if (vista === 'semanal') {
+        document.getElementById('btn-anterior').textContent = '← Semana Anterior';
+        document.getElementById('btn-siguiente').textContent = 'Semana Siguiente →';
+    } else {
+        document.getElementById('btn-anterior').textContent = '← Anterior';
+        document.getElementById('btn-siguiente').textContent = 'Siguiente →';
+    }
+    
+    actualizarCalendario();
+}
+
+// Función para cambiar el nivel de zoom
+function cambiarZoom(nivel) {
+    zoomLevel = nivel;
+    
+    // Actualizar apariencia de los botones de zoom
+    document.querySelectorAll('.zoom-btn').forEach(btn => {
+        btn.classList.toggle('zoom-active', parseInt(btn.dataset.zoom) === nivel);
+    });
+    
+    actualizarCalendario();
+}
+
+// Funciones de navegación
+function cambiarPeriodo(cantidad) {
+    if (vistaActual === 'diaria') {
+        fechaSeleccionada.setDate(fechaSeleccionada.getDate() + cantidad);
+    } else if (vistaActual === 'semanal') {
+        fechaSeleccionada.setDate(fechaSeleccionada.getDate() + (cantidad * 7));
+    } else if (vistaActual === 'mensual') {
+        fechaSeleccionada.setMonth(fechaSeleccionada.getMonth() + cantidad);
+    }
+    actualizarVistaFecha();
+    actualizarCalendario();
+}
+
+function seleccionarFecha(fecha) {
+    const [year, month, day] = fecha.split('-').map(Number);
+    fechaSeleccionada = new Date(year, month - 1, day);
+    actualizarVistaFecha();
+    actualizarCalendario();
+}
+
+// Función para seleccionar una fecha desde la vista mensual
+function seleccionarFechaMensual(fechaIso) {
+    fechaSeleccionada = new Date(fechaIso);
+    cambiarVista('diaria'); // Cambiar a vista diaria
+    actualizarVistaFecha();
+    actualizarCalendario();
+}
+
+function irAHoy() {
+    fechaSeleccionada = new Date();
+    actualizarVistaFecha();
+    actualizarCalendario();
+}
+
+// Funciones de actualización de vista
+function actualizarVistaFecha() {
+    if (vistaActual === 'diaria') {
+        const fechaFormateada = formatearFecha(fechaSeleccionada, 'largo');
+        document.getElementById('fecha-seleccionada').textContent = 
+            fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
+    } else if (vistaActual === 'semanal') {
+        const fechasSemana = obtenerFechasSemana();
+        const inicioSemana = formatearFecha(fechasSemana[0], 'largo');
+        const finSemana = formatearFecha(fechasSemana[6], 'largo');
+        document.getElementById('fecha-seleccionada').textContent = 
+            `${inicioSemana} - ${finSemana}`;
+    } else if (vistaActual === 'mensual') {
+        // Formato para mostrar solo el mes y año
+        const nombreMes = fechaSeleccionada.toLocaleDateString('es-ES', { month: 'long' });
+        const año = fechaSeleccionada.getFullYear();
+        document.getElementById('fecha-seleccionada').textContent = 
+            `${nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1)} ${año}`;
+    }
+
+    document.getElementById('fecha-actual').textContent = 
+        formatearFecha(new Date(), 'largo');
+
+    actualizarSelectorFecha();
+}
+
+function actualizarSelectorFecha() {
+    const datePicker = document.getElementById('fecha-picker');
+    const year = fechaSeleccionada.getFullYear();
+    const month = String(fechaSeleccionada.getMonth() + 1).padStart(2, '0');
+    const day = String(fechaSeleccionada.getDate()).padStart(2, '0');
+    datePicker.value = `${year}-${month}-${day}`;
+}
+// Función para agregar pie de página
+function agregarPieDePagina() {
+    const calendario = document.getElementById('calendario');
+    
+    const pieDePagina = document.createElement('div');
+    pieDePagina.className = 'bg-gray-100 border-t border-gray-200 py-2 px-4 text-center text-sm text-gray-600 w-full mt-4';
+    pieDePagina.textContent = 'Visor perteneciente a Cristian Pimentel';
+    
+    // Insertar después del calendario
+    calendario.parentNode.insertBefore(pieDePagina, calendario.nextSibling);
+}
+
+function actualizarHoraActualizacion() {
+    const ahora = new Date().toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    document.getElementById('ultima-actualizacion').textContent = 
+        `Última actualización: ${ahora}`;
+}
+
+// Funciones del Modal
+function mostrarModal(servicio) {
+    const modal = document.getElementById('servicioModal');
+    const contenido = document.getElementById('modalContenido');
+    
+    let infoAdicional = '';
+    if (servicio.esTraslado) {
+        infoAdicional = `
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Duración del traslado:</div>
+                <div class="text-gray-900">${servicio.duracionTraslado} horas</div>
+            </div>
+        `;
+    }
+    
+    contenido.innerHTML = `
+        <div class="grid gap-4">
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Tipo:</div>
+                <div class="text-gray-900">${servicio.esTraslado ? 'Traslado' : 'Servicio'}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Técnico:</div>
+                <div class="text-gray-900">${servicio.tecnico}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Horario:</div>
+                <div class="text-gray-900">${servicio.horaInicio}:00 - ${servicio.horaTermino}:00</div>
+            </div>
+            ${infoAdicional}
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Requerimiento:</div>
+                <div class="text-gray-900">${servicio.requerimiento || 'No especificado'}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Nota de Venta:</div>
+                <div class="text-gray-900">${servicio.notaVenta || 'No especificado'}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Cliente:</div>
+                <div class="text-gray-900">${servicio.cliente}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Servicio:</div>
+                <div class="text-gray-900">${servicio.servicio}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Canal:</div>
+                <div class="text-gray-900">${servicio.canal || 'No especificado'}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Valor:</div>
+                <div class="text-gray-900">${servicio.valor || 'No especificado'}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Dirección:</div>
+                <div class="text-gray-900">${servicio.direccion}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Estado:</div>
+                <div class="text-gray-900">${servicio.estado}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Observaciones:</div>
+                <div class="text-gray-900">${servicio.observaciones || 'Sin observaciones'}</div>
+            </div>
+            <div class="modal-field">
+                <div class="font-semibold text-gray-700">Supervisor:</div>
+                <div class="text-gray-900">${servicio.supervisor || 'No especificado'}</div>
+            </div>
+        </div>
+    `;
+    
+    modal.style.display = 'flex';
+}
+
+function cerrarModal() {
+    document.getElementById('servicioModal').style.display = 'none';
+}
+
+function ajustarAlturaContenedor() {
+    // Eliminar cualquier restricción de altura máxima
+    const calendarioContainer = document.querySelector('.calendario-container');
+    if (calendarioContainer) {
+        calendarioContainer.style.maxHeight = 'none';
+        calendarioContainer.style.overflow = 'visible';
+    }
+    
+    // Asegurarse de que el cuerpo de la página permite desplazamiento
+    document.body.style.overflow = 'auto';
+    document.body.style.height = 'auto';
+    
+    // Ajustar el contenedor principal
+    const container = document.querySelector('.container');
+    if (container) {
+        container.style.height = 'auto';
+        container.style.minHeight = '100vh';
+    }
+}
+
+// Función para obtener el color del supervisor
+function obtenerColorSupervisor(supervisor) {
+    // Si no hay supervisor o no tiene un color definido, devolver un color por defecto
+    if (!supervisor || !coloresSupervisores[supervisor]) {
+        return '#777777'; // Gris por defecto
+    }
+    
+    return coloresSupervisores[supervisor];
+}
+
+// Función para determinar clase de estado
+function obtenerClaseEstado(estado) {
+    // Si no hay estado, usar reservado como valor predeterminado
+    if (!estado) {
+        return 'servicio-reservado';
+    }
+    
+    // Convertir a minúsculas y eliminar espacios para hacer la comparación más robusta
+    const estadoNormalizado = estado.toString().toLowerCase().trim();
+    
+    // Verificar los diferentes estados posibles
+    if (estadoNormalizado === 'programado' || estadoNormalizado.includes('program')) {
+        return 'servicio-programado';
+    }
+    
+    if (estadoNormalizado === 'cerrado' || estadoNormalizado.includes('cerr')) {
+        return 'servicio-cerrado';
+    }
+    
+    if (estadoNormalizado === 'reservado' || estadoNormalizado.includes('reserv')) {
+        return 'servicio-reservado';
+    }
+    
+    if (estadoNormalizado === 'traslado' || estadoNormalizado.includes('trasl')) {
+        return 'servicio-traslado';
+    }
+    
+    // Si no coincide con ninguno conocido, usar reservado por defecto
+    return 'servicio-reservado';
+}
+
+// Event Listeners para filtros colapsables
+document.addEventListener('DOMContentLoaded', function() {
+    const toggleBtn = document.getElementById('toggleFiltros');
+    const filtrosContainer = document.getElementById('filtrosContainer');
+    const calendario = document.querySelector('.calendario-container');
+    let lastScrollTop = 0;
+
+    // Función para colapsar/expandir los filtros
+    function toggleFiltros() {
+        filtrosContainer.classList.toggle('expanded');
+        toggleBtn.classList.toggle('expanded');
+        
+        // Actualizar el texto del botón
+        const toggleText = toggleBtn.querySelector('.toggle-text');
+        if (!filtrosContainer.classList.contains('expanded')) {
+            toggleText.textContent = 'Mostrar filtros';
+            toggleBtn.querySelector('#filtrosIcon').textContent = '▼';
+        } else {
+            toggleText.textContent = 'Ocultar filtros';
+            toggleBtn.querySelector('#filtrosIcon').textContent = '▲';
+        }
+    }
+
+    // Event listener para el botón de toggle
+    toggleBtn.addEventListener('click', toggleFiltros);
+
+    // Event listener para colapsar filtros al hacer scroll
+    calendario.addEventListener('scroll', function(e) {
+        const scrollTop = e.target.scrollTop;
+        if (scrollTop > lastScrollTop && scrollTop > 50) {
+            // Scrolling down
+            if (filtrosContainer.classList.contains('expanded')) {
+                toggleFiltros();
+            }
+        }
+        lastScrollTop = scrollTop;
+    });
+
+    // Event listener para el escape en el modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            cerrarModal();
+        }
+    });
+
+    // Event listener para clicks fuera del modal
+    window.onclick = function(event) {
+        const modal = document.getElementById('servicioModal');
+        if (event.target == modal) {
+            cerrarModal();
+        }
+    }
+
+    // Configurar los event listeners para los botones de filtrado por estado
+    document.getElementById('filtro-todos').addEventListener('click', function() {
+        filtros.estado = '';
+        actualizarBotonesEstado('filtro-todos');
+        actualizarCalendario();
+    });
+    
+    document.getElementById('filtro-programado').addEventListener('click', function() {
+        filtros.estado = 'programado';
+        actualizarBotonesEstado('filtro-programado');
+        actualizarCalendario();
+    });
+    
+    document.getElementById('filtro-reservado').addEventListener('click', function() {
+        filtros.estado = 'reservado';
+        actualizarBotonesEstado('filtro-reservado');
+        actualizarCalendario();
+    });
+    
+    document.getElementById('filtro-cerrado').addEventListener('click', function() {
+        filtros.estado = 'cerrado';
+        actualizarBotonesEstado('filtro-cerrado');
+        actualizarCalendario();
+    });
+    
+    document.getElementById('filtro-traslado').addEventListener('click', function() {
+        filtros.estado = 'traslado';
+        actualizarBotonesEstado('filtro-traslado');
+        actualizarCalendario();
+    });
+
+    // Evento para el campo de búsqueda unificada con Enter
+    document.getElementById('busqueda-valor').addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            buscarServicio();
+        }
+    });
+
+    // Los filtros comienzan ocultos por defecto, asegurarse del texto correcto
+    const toggleText = toggleBtn.querySelector('.toggle-text');
+    toggleText.textContent = 'Mostrar filtros';
+    toggleBtn.querySelector('#filtrosIcon').textContent = '▼';
+
+    // Inicialización
+    inicializar();
+});
+
+// Función de inicialización
+function inicializar() {
+    actualizarVistaFecha();
+    actualizarSelectorFecha();
+    cargarDatos();
+    
+    // Añadir esto:
+    setTimeout(ajustarAlturaContenedor, 1000); // Esperar a que todo se cargue
+    
+    // Habilitar actualización automática
+    setInterval(() => {
+        if (fechaSeleccionada.toDateString() === new Date().toDateString()) {
+            cargarDatos();
+        }
+    }, 60000); // Actualizar cada minuto
+}
+</script>
+</body>
+</html>
